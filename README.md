@@ -1,1 +1,1 @@
-# menurithm
+# Menurithm MVP
