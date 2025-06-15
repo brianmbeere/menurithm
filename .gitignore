@@ -1,0 +1,46 @@
+# Node
+node_modules/
+build/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Mac
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Output
+data/
+output/
+backend/data/
+backend/output/
+
+# Compiled
+*.pyc
+*.pyo
+*.pyd
+
+# Excel/CSV uploads
+*.csv
+*.xlsx
+*.xls
+
+# Frontend build
+frontend/build/
+frontend/node_modules/
+frontend/.env
+
+# Backend cache
+backend/__pycache__/
+
+# Misc
+*.swp
+*.swo
