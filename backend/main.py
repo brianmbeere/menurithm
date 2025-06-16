@@ -1,8 +1,21 @@
 # Entry point for FastAPI backend
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from routers import inventory
 
 app = FastAPI()
+
+# Allow all origins for MVP/dev
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(inventory.router)
 
 @app.get('/', response_class=HTMLResponse)
 def read_root():

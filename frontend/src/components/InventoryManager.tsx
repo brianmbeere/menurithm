@@ -2,27 +2,35 @@ import React, { useRef, useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
-function emptyItem() {
-  return {
-    id: Math.random().toString(36).substr(2, 9),
-    name: '',
-    category: '',
-    quantity: 0,
-    unit: '',
-    expiryDate: '',
-    storageLocation: '',
-  };
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  expiryDate: string;
+  storageLocation: string;
 }
 
-function InventoryManager() {
-  const [items, setItems] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [newItem, setNewItem] = useState(emptyItem());
-  const [errors, setErrors] = useState({});
-  const fileInputRef = useRef(null);
+const emptyItem = (): InventoryItem => ({
+  id: Math.random().toString(36).substr(2, 9),
+  name: '',
+  category: '',
+  quantity: 0,
+  unit: '',
+  expiryDate: '',
+  storageLocation: '',
+});
 
-  function validateItem(item) {
-    const errs = {};
+const InventoryManager: React.FC = () => {
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newItem, setNewItem] = useState<InventoryItem>(emptyItem());
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateItem = (item: InventoryItem) => {
+    const errs: { [key: string]: string } = {};
     if (!item.name) errs.name = 'Required';
     if (!item.category) errs.category = 'Required';
     if (!item.quantity || item.quantity < 0) errs.quantity = 'Invalid';
@@ -31,9 +39,9 @@ function InventoryManager() {
     else if (new Date(item.expiryDate) < new Date()) errs.expiryDate = 'Expired';
     if (!item.storageLocation) errs.storageLocation = 'Required';
     return errs;
-  }
+  };
 
-  function handleFileUpload(e) {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase();
@@ -41,7 +49,7 @@ function InventoryManager() {
       Papa.parse(file, {
         header: true,
         complete: (results) => {
-          const parsed = (results.data).map((row) => ({
+          const parsed = (results.data as any[]).map((row) => ({
             id: Math.random().toString(36).substr(2, 9),
             name: row['name'] || '',
             category: row['category'] || '',
@@ -56,11 +64,11 @@ function InventoryManager() {
     } else if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const data = new Uint8Array(evt.target?.result);
+        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
-        const parsed = (rows).map((row) => ({
+        const parsed = (rows as any[]).map((row) => ({
           id: Math.random().toString(36).substr(2, 9),
           name: row['name'] || '',
           category: row['category'] || '',
@@ -74,9 +82,9 @@ function InventoryManager() {
       reader.readAsArrayBuffer(file);
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }
+  };
 
-  function handleInputChange(e, id) {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, id?: string) => {
     const { name, value } = e.target;
     if (id) {
       setItems((prev) =>
@@ -87,9 +95,9 @@ function InventoryManager() {
     } else {
       setNewItem((prev) => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
     }
-  }
+  };
 
-  function handleAddRow() {
+  const handleAddRow = () => {
     const errs = validateItem(newItem);
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -98,10 +106,10 @@ function InventoryManager() {
     setItems((prev) => [...prev, newItem]);
     setNewItem(emptyItem());
     setErrors({});
-  }
+  };
 
-  function handleEdit(id) { setEditingId(id); }
-  function handleSaveEdit(id) {
+  const handleEdit = (id: string) => setEditingId(id);
+  const handleSaveEdit = (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
     const errs = validateItem(item);
@@ -111,10 +119,11 @@ function InventoryManager() {
     }
     setEditingId(null);
     setErrors({});
-  }
-  function handleDelete(id) { setItems((prev) => prev.filter((item) => item.id !== id)); }
+  };
+  const handleDelete = (id: string) => setItems((prev) => prev.filter((item) => item.id !== id));
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
+    // Validate all items
     for (const item of items) {
       const errs = validateItem(item);
       if (Object.keys(errs).length) {
@@ -123,8 +132,7 @@ function InventoryManager() {
       }
     }
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/inventory';
-      const res = await fetch(apiUrl, {
+      const res = await fetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(items),
@@ -134,7 +142,7 @@ function InventoryManager() {
     } catch (err) {
       alert('Error submitting inventory.');
     }
-  }
+  };
 
   return (
     <div className="max-w-5xl mx-auto p-4">
@@ -342,6 +350,6 @@ function InventoryManager() {
       </div>
     </div>
   );
-}
+};
 
 export default InventoryManager;

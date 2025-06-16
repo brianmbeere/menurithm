@@ -23,16 +23,15 @@ services:
       - backend
     environment:
       - NODE_ENV=development
-# Optionally add db and object storage services for production
-#  db:
-#    image: postgres:15
-#    environment:
-#      POSTGRES_USER: user
-#      POSTGRES_PASSWORD: password
-#      POSTGRES_DB: menurithm
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      - pgdata:/var/lib/postgresql/data
-#volumes:
-#  pgdata:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: menurithm
+      POSTGRES_PASSWORD: menurithm
+      POSTGRES_DB: menurithm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
