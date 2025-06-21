@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Card, CardContent, Typography, Table, TableHead, TableRow,
-  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse
+  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box
 } from "@mui/material";
 import { Delete, Edit, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
@@ -9,19 +9,21 @@ import { type DishOutput, type DishInput, createDish } from "../api/createDish";
 import deleteDish from "../api/deleteDish";
 import { updateDish } from "../api/updateDish";
 
-const IngredientInputs = ({ index, ing, onChange }: {
+const IngredientInputs = ({
+  index, ing, onChange
+}: {
   index: number;
   ing: DishIngredient;
   onChange: (index: number, field: keyof DishIngredient, value: string | number) => void;
 }) => (
   <>
-    <Grid columns={{xs:12, sm:4, md:4, lg:4, xl:4}}>
+    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Ingredient" value={ing.ingredient_name} onChange={(e) => onChange(index, "ingredient_name", e.target.value)} />
     </Grid>
-    <Grid columns={{xs:12, sm:4, md:4, lg:4, xl:4}}>
+    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
     </Grid>
-    <Grid columns={{xs:12, sm:4, md:4, lg:4, xl:4}}>
+    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Unit" value={ing.unit} onChange={(e) => onChange(index, "unit", e.target.value)} />
     </Grid>
   </>
@@ -106,34 +108,41 @@ const DishManager = () => {
         <Typography variant="h6" gutterBottom>
           {editDishId !== null ? "Edit Dish" : "Create Dish"}
         </Typography>
+
         <Grid container spacing={2}>
-          <Grid columns={{xs:12, sm:6, md:6, lg:6, xl:6}}>
+          <Grid columns={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Dish Name" value={dishForm.name} onChange={(e) => handleDishChange("name", e.target.value)} />
           </Grid>
-          <Grid columns={{xs:12, sm:6, md:6, lg:6, xl:6}}>
+          <Grid columns={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Description" value={dishForm.description} onChange={(e) => handleDishChange("description", e.target.value)} />
           </Grid>
 
-          <Grid columns={{xs:12}}>
+          <Grid columns={{ xs: 12 }}>
             <Button onClick={() => setShowIngredients(prev => !prev)} startIcon={showIngredients ? <ExpandLess /> : <ExpandMore />}>
               {showIngredients ? "Hide Ingredients" : "Add Ingredients"}
             </Button>
           </Grid>
 
-          <Collapse in={showIngredients} style={{ width: "100%" }} timeout={400} easing={{ enter: 'cubic-bezier(0.4, 0, 0.2, 1)', exit: 'cubic-bezier(0.4, 0, 0.2, 1)' }}>
+          <Collapse in={showIngredients} timeout={400} style={{ width: "100%" }}>
             <Grid container spacing={2}>
               {dishForm.ingredients.map((ing, i) => (
                 <IngredientInputs key={i} index={i} ing={ing} onChange={handleIngredientChange} />
               ))}
-              <Grid columns={{xs:12}}>
+              <Grid columns={{ xs: 12 }}>
                 <Button onClick={addIngredientField}>Add Ingredient</Button>
               </Grid>
             </Grid>
           </Collapse>
 
-          <Grid columns={{xs:12}}>
-            <Button variant="contained" onClick={submitDish} sx={{ mt: 2 }}>{editDishId !== null ? "Update Dish" : "Save Dish"}</Button>
-            {editDishId !== null && <Button onClick={resetForm} sx={{ ml: 2, mt: 2 }}>Cancel</Button>}
+          <Grid columns={{ xs: 12 }}>
+            <Button variant="contained" onClick={submitDish} sx={{ mt: 2 }}>
+              {editDishId !== null ? "Update Dish" : "Save Dish"}
+            </Button>
+            {editDishId !== null && (
+              <Button onClick={resetForm} sx={{ ml: 2, mt: 2 }}>
+                Cancel
+              </Button>
+            )}
           </Grid>
         </Grid>
 
@@ -142,35 +151,38 @@ const DishManager = () => {
         <Typography variant="h6" gutterBottom>
           Dishes
         </Typography>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Ingredients</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {dishes.map((dish) => (
-              <TableRow key={dish.id}>
-                <TableCell>{dish.name}</TableCell>
-                <TableCell>{dish.description}</TableCell>
-                <TableCell>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    {dish.ingredients.map((ing, i) => (
-                      <li key={i}>{ing.ingredient_name} – {ing.quantity} {ing.unit}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleEdit(dish)}><Edit /></IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(dish.id)}><Delete /></IconButton>
-                </TableCell>
+
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Ingredients</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {dishes.map((dish) => (
+                <TableRow key={dish.id}>
+                  <TableCell>{dish.name}</TableCell>
+                  <TableCell>{dish.description}</TableCell>
+                  <TableCell>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {dish.ingredients.map((ing, i) => (
+                        <li key={i}>{ing.ingredient_name} – {ing.quantity} {ing.unit}</li>
+                      ))}
+                    </ul>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleEdit(dish)}><Edit /></IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(dish.id)}><Delete /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       </CardContent>
     </Card>
   );
