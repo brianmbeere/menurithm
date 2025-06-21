@@ -16,3 +16,4 @@ def get_db():
 def get_generated_menu(db: Session = Depends(get_db)):
     dishes = generate_menu(db)
     return {"dishes": dishes}
+

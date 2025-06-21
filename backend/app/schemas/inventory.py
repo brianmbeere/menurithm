@@ -12,3 +12,11 @@ class InventoryItemOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class InventoryItemIn(BaseModel):
+    ingredient_name: str
+    quantity: str
+    unit: str
+    category: str
+    expiry_date: date
+    storage_location: str

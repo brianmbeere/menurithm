@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.sales import SalesRecord
-from app.schemas.sales import SalesRecordOut
+from app.schemas.sales import SalesRecordOut, SalesRecordIn
 from typing import List
 
 
@@ -45,3 +45,11 @@ async def upload_inventory(file: UploadFile = File(...)):
 @router.get("/sales", response_model=List[SalesRecordOut])
 def get_sales(db: Session = Depends(get_db)):
     return db.query(SalesRecord).all()
+
+@router.post("/sales", status_code=201)
+def add_sale(sale: SalesRecordIn, db: Session = Depends(get_db)):
+    record = SalesRecord(**sale.dict())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record

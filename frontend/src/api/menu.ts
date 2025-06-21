@@ -6,3 +6,4 @@ export const getGeneratedMenu = async () => {
   }
   return response.json();
 };
+

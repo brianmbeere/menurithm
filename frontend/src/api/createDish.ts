@@ -10,6 +10,10 @@ export interface DishInput {
   ingredients: DishIngredientInput[];
 }
 
+export interface DishOutput extends DishInput {
+  id: number;
+}
+
 export const createDish = async (dish: DishInput) => {
   const response = await fetch("http://localhost:8000/dishes", {
     method: "POST",
