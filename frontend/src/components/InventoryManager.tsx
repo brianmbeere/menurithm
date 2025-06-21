@@ -1,354 +1,177 @@
-import React, { useRef, useState } from 'react';
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+import React, { useEffect, useState } from "react";
+import {
+  Card, CardContent, Typography, Table, TableHead, TableRow,
+  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider
+} from "@mui/material";
+import { Delete, Edit, Save, UploadFile } from "@mui/icons-material";
+import { updateInventory, type InventoryItem} from "../api/updateInventory";
+import deleteInventory from "../api/deleteInventory";
+import uploadInventoryFile from "../api/uploadInventoryFile";
+import fetchInventory  from "../api/fetchInventory";
 
-interface InventoryItem {
-  id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  unit: string;
-  expiryDate: string;
-  storageLocation: string;
-}
 
-const emptyItem = (): InventoryItem => ({
-  id: Math.random().toString(36).substr(2, 9),
-  name: '',
-  category: '',
-  quantity: 0,
-  unit: '',
-  expiryDate: '',
-  storageLocation: '',
-});
+const InventoryManager = () => {
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editedRow, setEditedRow] = useState<Partial<InventoryItem>>({});
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
-const InventoryManager: React.FC = () => {
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState<InventoryItem>(emptyItem());
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    fetchInventory().then(setInventory);
+  }, []);
 
-  const validateItem = (item: InventoryItem) => {
-    const errs: { [key: string]: string } = {};
-    if (!item.name) errs.name = 'Required';
-    if (!item.category) errs.category = 'Required';
-    if (!item.quantity || item.quantity < 0) errs.quantity = 'Invalid';
-    if (!item.unit) errs.unit = 'Required';
-    if (!item.expiryDate) errs.expiryDate = 'Required';
-    else if (new Date(item.expiryDate) < new Date()) errs.expiryDate = 'Expired';
-    if (!item.storageLocation) errs.storageLocation = 'Required';
-    return errs;
+  const handleEdit = (index: number) => {
+    setEditIndex(index);
+    setEditedRow({ ...inventory[index] });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'csv') {
-      Papa.parse(file, {
-        header: true,
-        complete: (results) => {
-          const parsed = (results.data as any[]).map((row) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: row['name'] || '',
-            category: row['category'] || '',
-            quantity: Number(row['quantity']) || 0,
-            unit: row['unit'] || '',
-            expiryDate: row['expiryDate'] || '',
-            storageLocation: row['storageLocation'] || '',
-          }));
-          setItems((prev) => [...prev, ...parsed]);
-        },
-      });
-    } else if (ext === 'xlsx' || ext === 'xls') {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet);
-        const parsed = (rows as any[]).map((row) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: row['name'] || '',
-          category: row['category'] || '',
-          quantity: Number(row['quantity']) || 0,
-          unit: row['unit'] || '',
-          expiryDate: row['expiryDate'] || '',
-          storageLocation: row['storageLocation'] || '',
-        }));
-        setItems((prev) => [...prev, ...parsed]);
-      };
-      reader.readAsArrayBuffer(file);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleChange = (field: keyof InventoryItem, value: string) => {
+    setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, id?: string) => {
-    const { name, value } = e.target;
-    if (id) {
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, [name]: name === 'quantity' ? Number(value) : value } : item
-        )
-      );
-    } else {
-      setNewItem((prev) => ({ ...prev, [name]: name === 'quantity' ? Number(value) : value }));
-    }
+  const handleSave = async () => {
+    if (editIndex === null) return;
+    const updated = { ...inventory[editIndex], ...editedRow };
+    await updateInventory(updated);
+    const newList = [...inventory];
+    newList[editIndex] = updated;
+    setInventory(newList);
+    setEditIndex(null);
   };
 
-  const handleAddRow = () => {
-    const errs = validateItem(newItem);
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-    setItems((prev) => [...prev, newItem]);
-    setNewItem(emptyItem());
-    setErrors({});
+  const handleDelete = async (index: number) => {
+    const name = inventory[index].ingredient_name;
+    await deleteInventory(name);
+    const updated = inventory.filter((_, i) => i !== index);
+    setInventory(updated);
   };
 
-  const handleEdit = (id: string) => setEditingId(id);
-  const handleSaveEdit = (id: string) => {
-    const item = items.find((i) => i.id === id);
-    if (!item) return;
-    const errs = validateItem(item);
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-    setEditingId(null);
-    setErrors({});
-  };
-  const handleDelete = (id: string) => setItems((prev) => prev.filter((item) => item.id !== id));
-
-  const handleSubmit = async () => {
-    // Validate all items
-    for (const item of items) {
-      const errs = validateItem(item);
-      if (Object.keys(errs).length) {
-        setErrors(errs);
-        return;
-      }
-    }
+  const handleUpload = async () => {
+    if (!csvFile) return;
     try {
-      const res = await fetch('/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(items),
-      });
-      if (!res.ok) throw new Error('Failed to submit');
-      alert('Inventory submitted successfully!');
-    } catch (err) {
-      alert('Error submitting inventory.');
+      await uploadInventoryFile(csvFile);
+      alert("CSV uploaded successfully!");
+      setCsvFile(null);
+      const updated = await fetchInventory();
+      setInventory(updated);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Food Inventory Manager</h2>
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv, .xlsx, .xls"
-          onChange={handleFileUpload}
-          className="border rounded p-2"
-        />
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Upload CSV/Excel
-        </button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">Item Name</th>
-              <th className="p-2 border">Category</th>
-              <th className="p-2 border">Quantity</th>
-              <th className="p-2 border">Unit</th>
-              <th className="p-2 border">Expiry Date</th>
-              <th className="p-2 border">Storage Location</th>
-              <th className="p-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                {editingId === item.id ? (
+    <Card sx={{ mt: 4 }} elevation={3}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Inventory Manager
+        </Typography>
+
+        <Grid container spacing={2} alignItems="center">
+          <Grid columns={{xs:8}}>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+            />
+          </Grid>
+          <Grid columns={{xs:4}}>
+            <Button
+              variant="outlined"
+              onClick={handleUpload}
+              startIcon={<UploadFile />}
+              disabled={!csvFile}
+            >
+              Upload CSV
+            </Button>
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Quantity</TableCell>
+              <TableCell>Unit</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Expiry Date</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {inventory.map((item, i) => (
+              <TableRow key={item.ingredient_name}>
+                {editIndex === i ? (
                   <>
-                    <td className="border p-1">
-                      <input
-                        name="name"
-                        value={item.name}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                    <TableCell>
+                      <TextField
+                        value={editedRow.ingredient_name || ""}
+                        onChange={(e) => handleChange("ingredient_name", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        name="category"
-                        value={item.category}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={editedRow.quantity || ""}
+                        onChange={(e) => handleChange("quantity", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        name="quantity"
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={editedRow.unit || ""}
+                        onChange={(e) => handleChange("unit", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        name="unit"
-                        value={item.unit}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={editedRow.category || ""}
+                        onChange={(e) => handleChange("category", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        name="expiryDate"
+                    </TableCell>
+                    <TableCell>
+                      <TextField
                         type="date"
-                        value={item.expiryDate}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                        value={editedRow.expiry_date || ""}
+                        onChange={(e) => handleChange("expiry_date", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1">
-                      <input
-                        name="storageLocation"
-                        value={item.storageLocation}
-                        onChange={(e) => handleInputChange(e, item.id)}
-                        className="border rounded p-1 w-full"
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={editedRow.storage_location || ""}
+                        onChange={(e) => handleChange("storage_location", e.target.value)}
                       />
-                    </td>
-                    <td className="border p-1 flex gap-2">
-                      <button
-                        className="bg-green-500 text-white px-2 py-1 rounded"
-                        onClick={() => handleSaveEdit(item.id)}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="bg-gray-400 text-white px-2 py-1 rounded"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </td>
+                    </TableCell>
+                    <TableCell>
+                      <IconButton onClick={handleSave} color="primary">
+                        <Save />
+                      </IconButton>
+                    </TableCell>
                   </>
                 ) : (
                   <>
-                    <td className="border p-1">{item.name}</td>
-                    <td className="border p-1">{item.category}</td>
-                    <td className="border p-1">{item.quantity}</td>
-                    <td className="border p-1">{item.unit}</td>
-                    <td className="border p-1">{item.expiryDate}</td>
-                    <td className="border p-1">{item.storageLocation}</td>
-                    <td className="border p-1 flex gap-2">
-                      <button
-                        className="bg-blue-500 text-white px-2 py-1 rounded"
-                        onClick={() => handleEdit(item.id)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="bg-red-500 text-white px-2 py-1 rounded"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
+                    <TableCell>{item.ingredient_name}</TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>{item.unit}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.expiry_date}</TableCell>
+                    <TableCell>{item.storage_location}</TableCell>
+                    <TableCell>
+                      <IconButton onClick={() => handleEdit(i)}>
+                        <Edit />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(i)} color="error">
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
                   </>
                 )}
-              </tr>
+              </TableRow>
             ))}
-            <tr className="bg-gray-50">
-              <td className="border p-1">
-                <input
-                  name="name"
-                  value={newItem.name}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.name && <span className="text-xs text-red-500">{errors.name}</span>}
-              </td>
-              <td className="border p-1">
-                <input
-                  name="category"
-                  value={newItem.category}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.category && <span className="text-xs text-red-500">{errors.category}</span>}
-              </td>
-              <td className="border p-1">
-                <input
-                  name="quantity"
-                  type="number"
-                  value={newItem.quantity}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.quantity && <span className="text-xs text-red-500">{errors.quantity}</span>}
-              </td>
-              <td className="border p-1">
-                <input
-                  name="unit"
-                  value={newItem.unit}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.unit && <span className="text-xs text-red-500">{errors.unit}</span>}
-              </td>
-              <td className="border p-1">
-                <input
-                  name="expiryDate"
-                  type="date"
-                  value={newItem.expiryDate}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.expiryDate && <span className="text-xs text-red-500">{errors.expiryDate}</span>}
-              </td>
-              <td className="border p-1">
-                <input
-                  name="storageLocation"
-                  value={newItem.storageLocation}
-                  onChange={handleInputChange}
-                  className="border rounded p-1 w-full"
-                />
-                {errors.storageLocation && <span className="text-xs text-red-500">{errors.storageLocation}</span>}
-              </td>
-              <td className="border p-1">
-                <button
-                  className="bg-green-600 text-white px-2 py-1 rounded"
-                  onClick={handleAddRow}
-                >
-                  Add
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="flex justify-end mt-4">
-        <button
-          className="bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800"
-          onClick={handleSubmit}
-        >
-          Save & Submit Inventory
-        </button>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
 
