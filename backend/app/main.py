@@ -11,7 +11,7 @@ load_dotenv()
 app = FastAPI()
 
 # Allowed origins from .env (comma-separated)
-allowed_origins = os.getenv("ALLOWED_ORIGINS")
+allowed_origins = os.getenv("ALLOWED_ORIGINS","https://menurithm.onrender.com")
 origins = [origin.strip() for origin in allowed_origins.split(",")]
 
 
