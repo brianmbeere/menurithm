@@ -2,16 +2,13 @@ import React, { useState, useEffect } from "react";
 import {
   Card, CardContent, Typography, Grid, TextField, Button,
   Divider, Table, TableHead, TableRow, TableCell, TableBody,
-  TablePagination, useMediaQuery
+  TablePagination
 } from "@mui/material";
 import { type SaleInput, addSale } from "../api/addSales";
 import { uploadSalesFile } from "../api/uploadSales";
 import { fetchSales, type Sale } from "../api/fetchSales";
-import { useTheme } from "@mui/material/styles";
 
 const SalesManager = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [form, setForm] = useState<SaleInput>({
     date: "",

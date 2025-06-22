@@ -1,3 +1,5 @@
+import { BASE_URL } from "../utils";
+
 export interface DishIngredient {
   ingredient_name: string;
   quantity: number;
@@ -12,9 +14,8 @@ export interface Dish {
 }
 
 
-
 export const fetchDishes = async (): Promise<Dish[]> => {
-  const res = await fetch("http://localhost:8000/dishes");
+  const res = await fetch(`${BASE_URL}/dishes`);
   if (!res.ok) throw new Error("Failed to fetch dishes");
   return res.json();
 };

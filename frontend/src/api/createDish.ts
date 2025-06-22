@@ -1,3 +1,5 @@
+import { BASE_URL } from "../utils";
+
 export interface DishIngredientInput {
   ingredient_name: string;
   quantity: number;
@@ -15,7 +17,7 @@ export interface DishOutput extends DishInput {
 }
 
 export const createDish = async (dish: DishInput) => {
-  const response = await fetch("http://localhost:8000/dishes", {
+  const response = await fetch(`${BASE_URL}/dishes`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

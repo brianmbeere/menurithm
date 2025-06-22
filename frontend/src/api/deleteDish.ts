@@ -1,5 +1,7 @@
+import { BASE_URL } from "../utils";
+
 const deleteDish = async (dishId: number): Promise<void> => {
-  const res = await fetch(`http://localhost:8000/dishes/${dishId}`, {
+  const res = await fetch(`${BASE_URL}/dishes/${dishId}`, {
     method: "DELETE",
   });
   if (!res.ok) {

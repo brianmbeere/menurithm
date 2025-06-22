@@ -1,8 +1,10 @@
+import { BASE_URL } from "../utils";
+
 export const uploadSalesFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch("http://localhost:8000/upload-sales", {
+  const res = await fetch(`${BASE_URL}/upload-sales`, {
     method: "POST",
     body: formData,
   });

@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card, CardContent, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box
 } from "@mui/material";
-import { Delete, Edit, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
 import { type DishOutput, type DishInput, createDish } from "../api/createDish";
 import deleteDish from "../api/deleteDish";
 import { updateDish } from "../api/updateDish";
+import { Delete, Edit, ExpandLess, ExpandMore } from "./SVGIcons"
+
 
 const IngredientInputs = ({
   index, ing, onChange

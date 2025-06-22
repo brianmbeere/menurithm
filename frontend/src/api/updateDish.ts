@@ -1,3 +1,6 @@
+import { BASE_URL } from "../utils";
+
+
 interface DishInput {
   name: string;
   description?: string;
@@ -11,7 +14,7 @@ interface DishIngredientInput {
 }
 
 export const updateDish = async (id: number, dish: DishInput) => {
-  const res = await fetch(`http://localhost:8000/dishes/${id}`, {
+  const res = await fetch(`${BASE_URL}/dishes/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dish)
