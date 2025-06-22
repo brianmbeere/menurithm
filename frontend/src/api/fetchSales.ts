@@ -1,3 +1,5 @@
+import { BASE_URL } from "../utils";
+
 export interface Sale {
   id: number;
   date: string;
@@ -7,7 +9,7 @@ export interface Sale {
 }
 
 export const fetchSales = async (): Promise<Sale[]> => {
-  const res = await fetch("http://localhost:8000/sales");
+  const res = await fetch(`${BASE_URL}/sales`);
   if (!res.ok) throw new Error("Failed to fetch sales");
   return res.json();
 };

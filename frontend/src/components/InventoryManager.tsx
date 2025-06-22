@@ -2,19 +2,16 @@ import React, { useEffect, useState } from "react";
 import {
   Card, CardContent, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, TextField, IconButton, Button, Grid,
-  Divider, TablePagination, useMediaQuery
+  Divider, TablePagination
 } from "@mui/material";
-import { Delete, Edit, Save, UploadFile, Add } from "@mui/icons-material";
+import { Delete, Edit, Save, UploadFile, Add } from "./SVGIcons";
 import { updateInventory, type InventoryItem } from "../api/updateInventory";
 import deleteInventory from "../api/deleteInventory";
 import uploadInventoryFile from "../api/uploadInventoryFile";
 import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
-import { useTheme } from "@mui/material/styles";
 
 const InventoryManager = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -198,7 +195,6 @@ const InventoryManager = () => {
               </TableRow>
 
               {paginated.map((item, i) => {
-                const actualIndex = inventory.findIndex(inv => inv.ingredient_name === item.ingredient_name);
                 return (
                   <TableRow key={item.ingredient_name}>
                     <TableCell>{page * rowsPerPage + i + 1}</TableCell>

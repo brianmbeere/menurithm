@@ -1,3 +1,6 @@
+import { BASE_URL } from "../utils";
+
+
 export interface IngredientInput {
   ingredient_name: string;
   quantity: string;
@@ -8,7 +11,7 @@ export interface IngredientInput {
 }
 
 export const addIngredient = async (ingredient: IngredientInput) => {
-  const res = await fetch("http://localhost:8000/inventory", {
+  const res = await fetch(`${BASE_URL}/inventory`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(ingredient),

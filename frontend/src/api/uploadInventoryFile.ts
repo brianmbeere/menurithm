@@ -1,8 +1,11 @@
+import { BASE_URL } from "../utils";
+
+
 const uploadInventoryFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch("http://localhost:8000/upload-inventory", {
+  const res = await fetch(`${BASE_URL}/upload-inventory`, {
     method: "POST",
     body: formData,
   });

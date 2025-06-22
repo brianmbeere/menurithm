@@ -1,21 +1,17 @@
-import React, { useEffect, useState } from "react";
+import {  useState } from "react";
 import {
   Drawer, List, ListItem, ListItemText, ListItemIcon,
   Container, Typography, CircularProgress,
   Card, CardContent, Box, Toolbar, CssBaseline, AppBar, Divider, ListItemButton, Button
 } from "@mui/material";
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useTheme } from "@mui/material/styles";
 import { getGeneratedMenu } from "../api/menu";
 import InventoryManager from "../components/InventoryManager";
 import SalesManager from "../components/SalesManager";
 import DishManager from "../components/DishManager";
-import MenuIcon from "@mui/icons-material/Menu";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { IconButton } from "@mui/material";
+import { Inventory2Icon, ReceiptIcon, RestaurantMenuIcon, ListAltIcon, MenuIcon } from "../components/SVGIcons";
 
 const drawerWidth = 240;
 
