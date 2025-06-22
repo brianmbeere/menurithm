@@ -11,5 +11,6 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: parseInt(process.env.PORT ?? '4173') || 4173,  // for preview
+    allowedHosts: ['menurithm.onrender.com']
   }
 })
