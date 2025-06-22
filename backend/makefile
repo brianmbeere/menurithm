@@ -18,6 +18,11 @@ run:
 	@echo "Starting FastAPI backend..."
 	$(UVICORN) $(APP_MODULE) --reload
 
+# Start backend server in production mode (for Render)
+start:
+	@echo "Starting FastAPI backend in production mode..."
+	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port $${PORT:-8000}
+
 # Format code using black
 format:
 	$(VENV_NAME)/bin/black app
