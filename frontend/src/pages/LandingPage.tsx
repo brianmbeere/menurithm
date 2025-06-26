@@ -55,7 +55,7 @@ const LandingPage: React.FC = () => {
                 color="primary"
                 size="large"
                 sx={{ mx: 2 }}
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/signin')}
               >
                 Try Menurithm Now
               </Button>
@@ -63,7 +63,9 @@ const LandingPage: React.FC = () => {
                 variant="outlined"
                 size="large"
                 sx={{ mx: 2 }}
-                onClick={() => window.open("https://calendly.com/briannjenga413/30min", "_blank")}
+                onClick={() =>
+                  window.open('https://calendly.com/briannjenga413/30min', '_blank')
+                }
               >
                 Book a Demo
               </Button>
@@ -72,30 +74,30 @@ const LandingPage: React.FC = () => {
         </Box>
 
         <Box textAlign="center" mb={2}>
-            <motion.img
-                src="/Coffee shop-bro.svg"
-                alt="Coffee shop illustration"
-                width="80%"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
-                style={{ maxWidth: '400px' }}
-            />
-            <Typography variant="caption" color="textSecondary" mt={1}>
-                <a
-                href="https://storyset.com/worker"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#999', textDecoration: 'none' }}
-                >
-                Worker illustrations by Storyset
-                </a>
-            </Typography>
+          <motion.img
+            src="/Coffee shop-bro.svg"
+            alt="Coffee shop illustration"
+            width="80%"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            style={{ maxWidth: '400px' }}
+          />
+          <Typography variant="caption" color="textSecondary" mt={1}>
+            <a
+              href="https://storyset.com/worker"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#999', textDecoration: 'none' }}
+            >
+              Worker illustrations by Storyset
+            </a>
+          </Typography>
         </Box>
 
         <Grid container spacing={4}>
           {features.map((feature, i) => (
-            <Grid columns={{ xs: 12, md: 6 }}  key={i}>
+            <Grid columns={{ xs: 12, md: 6 }} key={i}>
               <motion.div
                 custom={i}
                 initial="hidden"
@@ -103,7 +105,10 @@ const LandingPage: React.FC = () => {
                 viewport={{ once: true }}
                 variants={fadeInUp}
               >
-                <Paper elevation={1} sx={{ p: 4, borderRadius: '20px', minHeight: '180px' }}>
+                <Paper
+                  elevation={1}
+                  sx={{ p: 4, borderRadius: '20px', minHeight: '180px' }}
+                >
                   <Typography variant="h6" fontWeight={600} gutterBottom>
                     {feature.title}
                   </Typography>
@@ -131,7 +136,7 @@ const LandingPage: React.FC = () => {
           variant="contained"
           color="primary"
           size="large"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/signin')}
         >
           🚀 Try Menurithm
         </Button>

@@ -71,3 +71,22 @@ export const MenuIcon = () => (
   </svg>
 );
 
+export const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+export const LogoutIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3-10H5c-1.1 0-2 .9-2 2v6h2V5h14v14H5v-6H3v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+

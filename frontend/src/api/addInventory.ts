@@ -3,6 +3,7 @@ import { BASE_URL } from "../utils";
 
 
 const addInventory = async (item: InventoryItem) => {
+  console.log("Adding inventory item:", item);
   const res = await fetch(`${BASE_URL}/inventory`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
