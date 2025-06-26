@@ -1,8 +1,10 @@
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home'; // Dashboard
 import LandingPage from './pages/LandingPage';
+import SignUpForm from "./components/SignUpForm";
+import SignInForm from "./components/SignInForm";
+import Dashboard from "./pages/Dashboard";
 
 const theme = createTheme({
   palette: {
@@ -23,7 +25,9 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/dashboard" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/signup" element={<SignUpForm />} />
+          <Route path="/signin" element={<SignInForm />} />
           <Route path="*" element={<div>404 Not Found</div>} />
         </Routes>
       </Router>

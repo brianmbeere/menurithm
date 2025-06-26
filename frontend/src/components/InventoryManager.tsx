@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
-  Card, CardContent, Typography, Table, TableHead, TableRow,
+  CardContent, Typography, Table, TableHead, TableRow,Autocomplete,
   TableCell, TableBody, TextField, IconButton, Button, Grid,
-  Divider, TablePagination
+  Divider, TablePagination, Tooltip, Snackbar, Alert, Paper, Box
 } from "@mui/material";
 import { Delete, Edit, Save, UploadFile, Add } from "./SVGIcons";
 import { updateInventory, type InventoryItem } from "../api/updateInventory";
@@ -12,7 +12,6 @@ import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
 
 const InventoryManager = () => {
-
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editedRow, setEditedRow] = useState<Partial<InventoryItem>>({});
@@ -24,14 +23,29 @@ const InventoryManager = () => {
     expiry_date: "",
     storage_location: ""
   });
+  const CATEGORY_OPTIONS = [
+  "Vegetables", "Grains", "Dairy", "Herbs", "Spices",
+  "Poultry", "Meat", "Seafood", "Beverages"
+ ];
+ const UNIT_OPTIONS = [
+  "pounds (lb)", "kilograms (kg)", "bunch", "liters (L)", "pieces", "packs"
+ ];
+
+  const STORAGE_OPTIONS = [
+    "Pantry", "Fridge", "Freezer", "Cellar", "Dry Storage"
+  ];
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
+  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
   useEffect(() => {
     fetchInventory().then(setInventory);
   }, []);
+
+  const showSnackbar = (message: string, severity: "success" | "error") =>
+    setSnackbar({ message, severity });
 
   const handleEdit = (index: number) => {
     setEditIndex(index);
@@ -48,33 +62,41 @@ const InventoryManager = () => {
       (item) => item.ingredient_name === filtered[editIndex].ingredient_name
     );
     const updated = { ...inventory[globalIndex], ...editedRow };
-    await updateInventory(updated);
-    const newList = [...inventory];
-    newList[globalIndex] = updated;
-    setInventory(newList);
-    setEditIndex(null);
+    try {
+      await updateInventory(updated);
+      const newList = [...inventory];
+      newList[globalIndex] = updated;
+      setInventory(newList);
+      setEditIndex(null);
+      showSnackbar("Item updated successfully", "success");
+    } catch {
+      showSnackbar("Failed to update item", "error");
+    }
   };
 
   const handleDelete = async (index: number) => {
     const globalIndex = inventory.findIndex(
       (item) => item.ingredient_name === filtered[index].ingredient_name
     );
-    const name = inventory[globalIndex].ingredient_name;
-    await deleteInventory(name);
-    const updated = inventory.filter((_, i) => i !== globalIndex);
-    setInventory(updated);
+    try {
+      await deleteInventory(inventory[globalIndex].ingredient_name);
+      setInventory(inventory.filter((_, i) => i !== globalIndex));
+      showSnackbar("Item deleted", "success");
+    } catch {
+      showSnackbar("Delete failed", "error");
+    }
   };
 
   const handleUpload = async () => {
     if (!csvFile) return;
     try {
       await uploadInventoryFile(csvFile);
-      alert("CSV uploaded successfully!");
       setCsvFile(null);
       const updated = await fetchInventory();
       setInventory(updated);
+      showSnackbar("CSV uploaded successfully!", "success");
     } catch (err: any) {
-      alert(err.message);
+      showSnackbar(err.message || "Upload failed", "error");
     }
   };
 
@@ -94,16 +116,13 @@ const InventoryManager = () => {
         expiry_date: "",
         storage_location: ""
       });
-      alert("Item added!");
+      showSnackbar("Item added!", "success");
     } catch (err: any) {
-      alert(err.message);
+      showSnackbar(err.message || "Add failed", "error");
     }
   };
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
+  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
@@ -113,51 +132,63 @@ const InventoryManager = () => {
     [item.ingredient_name, item.category, item.storage_location]
       .some(field => field.toLowerCase().includes(search.toLowerCase()))
   );
-
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Card sx={{ mt: 4 }} elevation={3}>
+    <Paper sx={{ mt: 4, p: 2 }}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h5" fontWeight={600} gutterBottom color="primary">
           Inventory Manager
         </Typography>
 
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid columns={{ xs: 12, sm: 6, md: 4 }}>
+        <Divider sx={{ my: 2 }} />
+
+        {/* Upload Section */}
+        <Typography variant="subtitle1" gutterBottom>Upload Inventory CSV</Typography>
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Grid columns={{ xs: 12, sm: 4 }} >
             <TextField
               fullWidth
               placeholder="Search by name, category, or location"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              size="small"
             />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 6, md: 4 }}>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-            />
+          <Grid columns={{ xs: 12, sm: 4 }} >
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<UploadFile />}
+              fullWidth
+            >
+              Choose CSV File
+              <input
+                type="file"
+                hidden
+                accept=".csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+              />
+            </Button>
           </Grid>
-          <Grid columns={{ xs: 12, md: 4 }}>
+          <Grid columns={{ xs: 12, sm: 4 }} >
             <Button
               fullWidth
-              variant="outlined"
+              variant="contained"
               onClick={handleUpload}
               startIcon={<UploadFile />}
               disabled={!csvFile}
             >
-              Upload CSV
+              Upload
             </Button>
           </Grid>
         </Grid>
 
-        <Divider sx={{ mb: 2 }} />
-
-        <div style={{ overflowX: "auto" }}>
-          <Table size="small">
+        {/* Table Section */}
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" sx={{ minWidth: 650 }}>
             <TableHead>
-              <TableRow>
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                 <TableCell>#</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Quantity</TableCell>
@@ -169,79 +200,97 @@ const InventoryManager = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow>
-                <TableCell>New</TableCell>
-                <TableCell>
-                  <TextField value={newRow.ingredient_name} onChange={(e) => handleNewRowChange("ingredient_name", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <TextField value={newRow.quantity} onChange={(e) => handleNewRowChange("quantity", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <TextField value={newRow.unit} onChange={(e) => handleNewRowChange("unit", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <TextField value={newRow.category} onChange={(e) => handleNewRowChange("category", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <TextField type="date" value={newRow.expiry_date} onChange={(e) => handleNewRowChange("expiry_date", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <TextField value={newRow.storage_location} onChange={(e) => handleNewRowChange("storage_location", e.target.value)} />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={handleAdd} color="primary"><Add /></IconButton>
-                </TableCell>
+              {/* Add New Row */}
+              <TableRow sx={{ backgroundColor: "#fafafa" }}>
+                  <TableCell>New</TableCell>
+                  {["ingredient_name", "quantity", "unit", "category", "expiry_date", "storage_location"].map((field) => (
+                    <TableCell key={field}>
+                      {["unit", "category", "storage_location"].includes(field) ? (
+                        <Autocomplete
+                          size="medium"
+                          options={
+                            field === "unit" ? UNIT_OPTIONS :
+                            field === "category" ? CATEGORY_OPTIONS :
+                            STORAGE_OPTIONS
+                          }
+                          freeSolo
+                          value={(newRow as any)[field] || ""}
+                          onChange={(_, value) => handleNewRowChange(field as keyof InventoryItem, value || "")}
+                          renderInput={(params) => (
+                            <TextField {...params} placeholder={field.replace("_", " ")} />
+                          )}
+                        />
+                      ) : (
+                        <TextField
+                          size="medium"
+                          type={field === "expiry_date" ? "date" : "text"}
+                          placeholder={field.replace("_", " ")}
+                          value={(newRow as any)[field]}
+                          onChange={(e) => handleNewRowChange(field as keyof InventoryItem, e.target.value)}
+                        />
+                      )}
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <Tooltip title="Add Item">
+                      <IconButton onClick={handleAdd} color="primary">
+                        <Add />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
               </TableRow>
-
-              {paginated.map((item, i) => {
-                return (
-                  <TableRow key={item.ingredient_name}>
-                    <TableCell>{page * rowsPerPage + i + 1}</TableCell>
-                    {editIndex === i ? (
-                      <>
-                        <TableCell>
-                          <TextField value={editedRow.ingredient_name} onChange={(e) => handleChange("ingredient_name", e.target.value)} />
+              {paginated.map((item, i) => (
+                <TableRow
+                  key={item.ingredient_name}
+                  hover
+                  sx={{ transition: "background-color 0.3s" }}
+                >
+                  <TableCell>{page * rowsPerPage + i + 1}</TableCell>
+                  {editIndex === i ? (
+                    <>
+                      {["ingredient_name", "quantity", "unit", "category", "expiry_date", "storage_location"].map((field: any) => (
+                        <TableCell key={field}>
+                          <TextField
+                            size="small"
+                            type={field === "expiry_date" ? "date" : "text"}
+                            value={(editedRow as any)[field]}
+                            onChange={(e) => handleChange(field, e.target.value)}
+                          />
                         </TableCell>
-                        <TableCell>
-                          <TextField value={editedRow.quantity} onChange={(e) => handleChange("quantity", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <TextField value={editedRow.unit} onChange={(e) => handleChange("unit", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <TextField value={editedRow.category} onChange={(e) => handleChange("category", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <TextField type="date" value={editedRow.expiry_date} onChange={(e) => handleChange("expiry_date", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <TextField value={editedRow.storage_location} onChange={(e) => handleChange("storage_location", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton onClick={handleSave} color="primary"><Save /></IconButton>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{item.ingredient_name}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>{item.expiry_date}</TableCell>
-                        <TableCell>{item.storage_location}</TableCell>
-                        <TableCell>
+                      ))}
+                      <TableCell>
+                        <Tooltip title="Save Changes">
+                          <IconButton onClick={handleSave} color="primary">
+                            <Save />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>{item.ingredient_name}</TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>{item.unit}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>{item.expiry_date}</TableCell>
+                      <TableCell>{item.storage_location}</TableCell>
+                      <TableCell>
+                        <Tooltip title="Edit">
                           <IconButton onClick={() => handleEdit(i)}><Edit /></IconButton>
-                          <IconButton onClick={() => handleDelete(i)} color="error"><Delete /></IconButton>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                );
-              })}
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton onClick={() => handleDelete(i)} color="error">
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
-        </div>
+        </Box>
 
         <TablePagination
           component="div"
@@ -253,7 +302,19 @@ const InventoryManager = () => {
           rowsPerPageOptions={[10, 25, 50, 100]}
         />
       </CardContent>
-    </Card>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={!!snackbar}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)}>
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
+    </Paper>
   );
 };
 
