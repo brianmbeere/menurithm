@@ -1,7 +1,8 @@
 import { BASE_URL } from "../utils";
 
 export interface DishIngredient {
-  ingredient_name: string;
+  ingredient_id: number;
+  ingredient_name?: string; // for display
   quantity: number;
   unit: string;
 }
@@ -12,7 +13,6 @@ export interface Dish {
   description?: string;
   ingredients: DishIngredient[];
 }
-
 
 export const fetchDishes = async (): Promise<Dish[]> => {
   const res = await fetch(`${BASE_URL}/dishes`);

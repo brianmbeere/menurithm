@@ -1,25 +1,39 @@
 import { useEffect, useState } from "react";
 import {
   Card, CardContent, Typography, Table, TableHead, TableRow,
-  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box
+  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box, Autocomplete,
+  Snackbar, Alert
 } from "@mui/material";
 import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
 import { type DishOutput, type DishInput, createDish } from "../api/createDish";
 import deleteDish from "../api/deleteDish";
 import { updateDish } from "../api/updateDish";
-import { Delete, Edit, ExpandLess, ExpandMore } from "./SVGIcons"
+import { Delete, Edit, ExpandLess, ExpandMore } from "./SVGIcons";
+import fetchInventory from "../api/fetchInventory";
 
+interface IngredientOption {
+  id: number;
+  ingredient_name: string;
+  unit: string;
+}
 
 const IngredientInputs = ({
-  index, ing, onChange
+  index, ing, onChange, ingredientOptions
 }: {
   index: number;
   ing: DishIngredient;
-  onChange: (index: number, field: keyof DishIngredient, value: string | number) => void;
+  onChange: (index: number, field: keyof DishIngredient, value: any) => void;
+  ingredientOptions: IngredientOption[];
 }) => (
   <>
     <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
-      <TextField fullWidth label="Ingredient" value={ing.ingredient_name} onChange={(e) => onChange(index, "ingredient_name", e.target.value)} />
+      <Autocomplete
+        options={ingredientOptions}
+        getOptionLabel={(option) => option.ingredient_name}
+        value={ingredientOptions.find(opt => opt.id === ing.ingredient_id) || null}
+        onChange={(_, value) => onChange(index, "ingredient_id", value ? value.id : null)}
+        renderInput={(params) => <TextField {...params} label="Ingredient" />}
+      />
     </Grid>
     <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
@@ -32,34 +46,50 @@ const IngredientInputs = ({
 
 const DishManager = () => {
   const [dishes, setDishes] = useState<DishOutput[]>([]);
+  const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
   const [dishForm, setDishForm] = useState<DishInput>({
     name: "",
     description: "",
-    ingredients: [{ ingredient_name: "", quantity: 1, unit: "" }]
+    ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }]
   });
   const [editDishId, setEditDishId] = useState<number | null>(null);
   const [showIngredients, setShowIngredients] = useState<boolean>(false);
+  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
   useEffect(() => {
     fetchDishes().then(setDishes);
+    fetchInventory().then((data) => {
+      setIngredientOptions(data.map((item: any) => ({
+        id: item.id,
+        ingredient_name: item.ingredient_name,
+        unit: item.unit
+      })));
+    });
   }, []);
+
+  const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
 
   const handleDishChange = (field: keyof DishInput, value: string) => {
     setDishForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleIngredientChange = (index: number, field: keyof DishIngredient, value: string | number) => {
+  const handleIngredientChange = (index: number, field: keyof DishIngredient, value: any) => {
     const ingredients = [...dishForm.ingredients];
     ingredients[index] = { ...ingredients[index], [field]: value };
+    // If ingredient_id changes, update unit to default from inventory
+    if (field === "ingredient_id") {
+      const found = ingredientOptions.find(opt => opt.id === value);
+      if (found) ingredients[index].unit = found.unit;
+    }
     setDishForm({ ...dishForm, ingredients });
   };
 
   const addIngredientField = () => {
-    setDishForm({ ...dishForm, ingredients: [...dishForm.ingredients, { ingredient_name: "", quantity: 1, unit: "" }] });
+    setDishForm({ ...dishForm, ingredients: [...dishForm.ingredients, { ingredient_id: 0, quantity: 1, unit: "" }] });
   };
 
   const resetForm = () => {
-    setDishForm({ name: "", description: "", ingredients: [{ ingredient_name: "", quantity: 1, unit: "" }] });
+    setDishForm({ name: "", description: "", ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }] });
     setEditDishId(null);
     setShowIngredients(false);
   };
@@ -67,22 +97,47 @@ const DishManager = () => {
   const submitDish = async () => {
     try {
       if (editDishId !== null) {
-        const updated = await updateDish(editDishId, dishForm);
+        const updated = await updateDish(
+          editDishId,
+          {
+            ...dishForm,
+            ingredients: dishForm.ingredients.map(ing => ({
+              ingredient_id: ing.ingredient_id,
+              quantity: ing.quantity,
+              unit: ing.unit
+            }))
+          }
+        );
         setDishes(prev => prev.map(d => (d.id === editDishId ? updated : d)));
-        alert("Dish updated!");
+        showSnackbar("Dish updated!", "success");
       } else {
-        const newDish = await createDish(dishForm);
+        const newDish = await createDish({
+          ...dishForm,
+          ingredients: dishForm.ingredients.map(ing => ({
+            ingredient_id: ing.ingredient_id,
+            quantity: ing.quantity,
+            unit: ing.unit
+          }))
+        });
         setDishes(prev => [...prev, newDish]);
-        alert("Dish created!");
+        showSnackbar("Dish created!", "success");
       }
       resetForm();
     } catch (err: any) {
-      alert(err.message);
+      showSnackbar(err.message, "error");
     }
   };
 
   const handleEdit = (dish: DishOutput) => {
-    setDishForm({ name: dish.name, description: dish.description, ingredients: dish.ingredients });
+    setDishForm({
+      name: dish.name,
+      description: dish.description,
+      ingredients: dish.ingredients.map(ing => ({
+        ingredient_id: ing.ingredient_id,
+        quantity: ing.quantity,
+        unit: ing.unit
+      }))
+    });
     setEditDishId(dish.id);
     setShowIngredients(true);
   };
@@ -92,15 +147,16 @@ const DishManager = () => {
     try {
       await deleteDish(id);
       setDishes(prev => prev.filter(d => d.id !== id));
+      showSnackbar("Dish deleted!", "success");
     } catch (err: any) {
-      alert(err.message);
+      showSnackbar(err.message, "error");
     }
   };
 
   return (
     <Card sx={{ mt: 4 }} elevation={3}>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h5" fontWeight={600} gutterBottom color="primary">
           Dish Manager
         </Typography>
 
@@ -117,24 +173,21 @@ const DishManager = () => {
           <Grid columns={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Description" value={dishForm.description} onChange={(e) => handleDishChange("description", e.target.value)} />
           </Grid>
-
           <Grid columns={{ xs: 12 }}>
             <Button onClick={() => setShowIngredients(prev => !prev)} startIcon={showIngredients ? <ExpandLess /> : <ExpandMore />}>
               {showIngredients ? "Hide Ingredients" : "Add Ingredients"}
             </Button>
           </Grid>
-
           <Collapse in={showIngredients} timeout={400} style={{ width: "100%" }}>
             <Grid container spacing={2}>
               {dishForm.ingredients.map((ing, i) => (
-                <IngredientInputs key={i} index={i} ing={ing} onChange={handleIngredientChange} />
+                <IngredientInputs key={i} index={i} ing={ing} onChange={handleIngredientChange} ingredientOptions={ingredientOptions} />
               ))}
               <Grid columns={{ xs: 12 }}>
                 <Button onClick={addIngredientField}>Add Ingredient</Button>
               </Grid>
             </Grid>
           </Collapse>
-
           <Grid columns={{ xs: 12 }}>
             <Button variant="contained" onClick={submitDish} sx={{ mt: 2 }}>
               {editDishId !== null ? "Update Dish" : "Save Dish"}
@@ -170,8 +223,8 @@ const DishManager = () => {
                   <TableCell>{dish.description}</TableCell>
                   <TableCell>
                     <ul style={{ margin: 0, paddingLeft: 16 }}>
-                      {dish.ingredients.map((ing, i) => (
-                        <li key={i}>{ing.ingredient_name} – {ing.quantity} {ing.unit}</li>
+                      {(dish.ingredients || []).map((ing, i) => (
+                        <li key={i}>{('ingredient_name' in ing && (ing as any).ingredient_name) ? (ing as any).ingredient_name : `Ingredient #${ing.ingredient_id}`} – {ing.quantity} {ing.unit}</li>
                       ))}
                     </ul>
                   </TableCell>
@@ -184,6 +237,17 @@ const DishManager = () => {
             </TableBody>
           </Table>
         </Box>
+
+        <Snackbar
+          open={!!snackbar}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)}>
+            {snackbar?.message}
+          </Alert>
+        </Snackbar>
       </CardContent>
     </Card>
   );
