@@ -8,7 +8,7 @@ interface DishInput {
 }
 
 interface DishIngredientInput {
-  ingredient_name: string;
+  ingredient_id: number;
   quantity: number;
   unit: string;
 }

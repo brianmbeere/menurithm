@@ -1,7 +1,7 @@
 import { BASE_URL } from "../utils";
 
 export interface DishIngredientInput {
-  ingredient_name: string;
+  ingredient_id: number;
   quantity: number;
   unit: string;
 }

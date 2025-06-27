@@ -1,13 +1,14 @@
 import { BASE_URL } from "../utils";
 
 export interface SaleInput {
-  date: string;
+  timestamp: string; // ISO string (e.g. 2025-06-27T12:00:00Z)
   dish_name: string;
   quantity_sold: number;
   price_per_unit: number;
 }
 
 export const addSale = async (sale: SaleInput) => {
+  console.log("Adding sale:", sale);
   const res = await fetch(`${BASE_URL}/sales`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

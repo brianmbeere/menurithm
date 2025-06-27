@@ -2,8 +2,11 @@ import { BASE_URL } from "../utils";
 
 export interface Sale {
   id: number;
-  date: string;
-  dish_name: string;
+  timestamp: string;
+  dish: {
+    id: number;
+    name: string;
+  };
   quantity_sold: number;
   price_per_unit: number;
 }

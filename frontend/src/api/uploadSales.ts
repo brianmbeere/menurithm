@@ -1,6 +1,7 @@
 import { BASE_URL } from "../utils";
 
 export const uploadSalesFile = async (file: File) => {
+  console.log("Uploading sales CSV:", file);
   const formData = new FormData();
   formData.append("file", file);
 

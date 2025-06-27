@@ -1,11 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, Date
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Float
 from app.db.database import Base
+from sqlalchemy.orm import relationship
 
-class SalesRecord(Base):
+class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date, nullable=False)
-    dish_name = Column(String, nullable=False)
-    quantity_sold = Column(Integer)
-    price_per_unit = Column(Float)
+    timestamp = Column(DateTime, nullable=False)
+    dish_id = Column(Integer, ForeignKey("dishes.id"))
+    quantity_sold = Column(Integer, nullable=False) 
+    price_per_unit = Column(Float, nullable=False)  
+
+    dish = relationship("Dish", back_populates="sales")

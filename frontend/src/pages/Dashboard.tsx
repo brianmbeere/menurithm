@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Drawer, List, ListItem, ListItemText, ListItemIcon,
-  Container, Typography, CircularProgress,
+  Container, Typography,
   Card, CardContent, Box, Toolbar, CssBaseline, AppBar,
   Divider, ListItemButton, Button, Fade, useMediaQuery, Tooltip,IconButton
 } from "@mui/material";
@@ -9,8 +9,8 @@ import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 
-import { getGeneratedMenu } from "../api/menu";
 import InventoryManager from "../components/InventoryManager";
+import MenuManager from "../components/MenuManager";
 import SalesManager from "../components/SalesManager";
 import DishManager from "../components/DishManager";
 import Home from "../components/Home";
@@ -23,9 +23,7 @@ import { auth } from "../hooks/initializeFirebase";
 const drawerWidth = 240;
 
 const Dashboard = () => {
-  const [menu, setMenu] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey,setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
@@ -88,19 +86,6 @@ const Dashboard = () => {
       </Box>
     </Box>
   );
-
-  const handleGenerateMenu = async () => {
-    setLoading(true);
-    try {
-      const data = await getGeneratedMenu();
-      setMenu(data.dishes);
-      setRefreshKey(prev => prev + 1);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -178,23 +163,9 @@ const Dashboard = () => {
                 </Card>
               )}
               {activeTab === 4 && (
-                <Card elevation={3}>
+                <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Generate Menu Suggestions
-                    </Typography>
-                    <Button variant="contained" onClick={handleGenerateMenu} sx={{ mb: 2 }}>
-                      Generate Menu
-                    </Button>
-                    {loading ? (
-                      <CircularProgress />
-                    ) : (
-                      <List dense>
-                        {menu.map((item, i) => (
-                          <ListItem key={i}>{item}</ListItem>
-                        ))}
-                      </List>
-                    )}
+                    <MenuManager refreshKey={refreshKey} setRefreshKey={setRefreshKey} />
                   </CardContent>
                 </Card>
               )}

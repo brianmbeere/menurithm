@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 class DishIngredientOut(BaseModel):
-    ingredient_name: str
+    ingredient_id: int
+    ingredient_name: Optional[str]  # for display
     quantity: float
     unit: str
 
@@ -19,7 +20,7 @@ class DishOut(BaseModel):
         orm_mode = True
 
 class DishIngredientIn(BaseModel):
-    ingredient_name: str
+    ingredient_id: int
     quantity: float
     unit: str
 
