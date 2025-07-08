@@ -5,14 +5,12 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
 
 import InventoryManager from "../components/InventoryManager";
 import MenuManager from "../components/MenuManager";
 import SalesManager from "../components/SalesManager";
 import DishManager from "../components/DishManager";
 import Dashboard from "../components/Dashboard";
-import { auth } from "../hooks/initializeFirebase";
 import DashboardNavigation from "../components/DashboardNavigation";
 import DashboardAppBar from "../components/DashboardAppBar";
 
@@ -29,16 +27,6 @@ const PageFrame = () => {
   const navigate = useNavigate();
 
   const toggleDrawer = () => setMobileOpen(!mobileOpen);
-
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/signin");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
 
   const handleAccountSettings = () => {
     // Navigate to account settings page
