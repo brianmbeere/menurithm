@@ -80,12 +80,47 @@ export const HomeIcon = () => (
   </svg>
 );
 
+export const AvatarIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v2h20v-2c0-3.33-6.67-5-10-5z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+
 export const LogoutIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path
       d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3-10H5c-1.1 0-2 .9-2 2v6h2V5h14v14H5v-6H3v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
       fill="currentColor"
     />
+  </svg>
+);
+
+export const DrawerExpandIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M10 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const DrawerCollapseIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M14 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const DishesIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    {/* Plate */}
+    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" fill="none"/>
+    {/* Fork */}
+    <rect x="6.5" y="7" width="1" height="6" rx="0.5" fill="currentColor"/>
+    <rect x="8.5" y="7" width="1" height="6" rx="0.5" fill="currentColor"/>
+    {/* Spoon */}
+    <ellipse cx="16.5" cy="10" rx="1" ry="2" fill="currentColor"/>
+    <rect x="16" y="12" width="1" height="3" rx="0.5" fill="currentColor"/>
   </svg>
 );
 

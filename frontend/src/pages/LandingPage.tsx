@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, Container, Grid, Paper } from '@mui/material';
+import { Box, Typography, Button, Container, Grid, Paper, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -33,28 +33,58 @@ const fadeInUp = {
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
 
   return (
     <>
-      <Container maxWidth="lg" sx={{ backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+      <Container
+        maxWidth="lg"
+        sx={{
+          backgroundColor: theme.palette.background.default,
+          minHeight: '100vh',
+          fontFamily: theme.typography.fontFamily,
+        }}
+      >
         <Box py={{ xs: 6, md: 10 }} textAlign="center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Typography variant="h2" fontWeight={700} gutterBottom>
+            <Typography
+              variant="h2"
+              fontWeight={700}
+              gutterBottom
+              sx={{
+                color: theme.palette.primary.main,
+                fontFamily: theme.typography.h2?.fontFamily || theme.typography.fontFamily,
+              }}
+            >
               Menurithm
             </Typography>
-            <Typography variant="h5" color="textSecondary" paragraph>
+            <Typography
+              variant="h5"
+              color="text.primary"
+              paragraph
+              sx={{
+                color: theme.palette.text.primary,
+                fontFamily: theme.typography.fontFamily,
+              }}
+            >
               AI-powered menus that make your kitchen smarter.
             </Typography>
             <Box mt={4}>
               <Button
                 variant="contained"
-                color="primary"
                 size="large"
-                sx={{ mx: 2 }}
+                sx={{
+                  mx: 2,
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  fontWeight: 600,
+                  fontFamily: theme.typography.fontFamily,
+                  '&:hover': { backgroundColor: theme.palette.primary.dark || theme.palette.primary.main },
+                }}
                 onClick={() => navigate('/signin')}
               >
                 Try Menurithm Now
@@ -62,7 +92,14 @@ const LandingPage: React.FC = () => {
               <Button
                 variant="outlined"
                 size="large"
-                sx={{ mx: 2 }}
+                sx={{
+                  mx: 2,
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  fontWeight: 600,
+                  fontFamily: theme.typography.fontFamily,
+                  '&:hover': { backgroundColor: theme.palette.secondary.main, borderColor: theme.palette.primary.main },
+                }}
                 onClick={() =>
                   window.open('https://calendly.com/briannjenga413/30min', '_blank')
                 }
@@ -83,7 +120,12 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 1 }}
             style={{ maxWidth: '400px' }}
           />
-          <Typography variant="caption" color="textSecondary" mt={1}>
+          <Typography
+            variant="caption"
+            color="textSecondary"
+            mt={1}
+            sx={{ color: theme.palette.text.secondary }}
+          >
             <a
               href="https://storyset.com/worker"
               target="_blank"
@@ -107,12 +149,32 @@ const LandingPage: React.FC = () => {
               >
                 <Paper
                   elevation={1}
-                  sx={{ p: 4, borderRadius: '20px', minHeight: '180px' }}
+                  sx={{
+                    p: 4,
+                    borderRadius: '20px',
+                    minHeight: '180px',
+                    backgroundColor: theme.palette.background.paper,
+                    boxShadow: '0 2px 8px rgba(46,204,113,0.08)',
+                  }}
                 >
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                  <Typography
+                    variant="h6"
+                    fontWeight={600}
+                    gutterBottom
+                    sx={{
+                      color: theme.palette.primary.main,
+                      fontFamily: theme.typography.h6?.fontFamily || theme.typography.fontFamily,
+                    }}
+                  >
                     {feature.title}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: theme.palette.text.primary,
+                      fontFamily: theme.typography.fontFamily,
+                    }}
+                  >
                     {feature.content}
                   </Typography>
                 </Paper>
@@ -129,13 +191,20 @@ const LandingPage: React.FC = () => {
           bottom: 20,
           right: 20,
           zIndex: 1000,
-          display: { xs: 'flex', md: 'flex' }
+          display: { xs: 'flex', md: 'flex' },
         }}
       >
         <Button
           variant="contained"
-          color="primary"
           size="large"
+          sx={{
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            fontWeight: 600,
+            fontFamily: theme.typography.fontFamily,
+            boxShadow: '0 2px 8px rgba(46,204,113,0.18)',
+            '&:hover': { backgroundColor: theme.palette.primary.dark || theme.palette.primary.main },
+          }}
           onClick={() => navigate('/signin')}
         >
           🚀 Try Menurithm

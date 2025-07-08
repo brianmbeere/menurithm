@@ -1,12 +1,15 @@
 import { Typography, Container, Grid, Paper } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
-const Home = () => {
+const Dashboard = () => {
+  const theme = useTheme();
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Typography variant="h4" fontWeight={700} gutterBottom color="primary">
+      <Typography variant="h4" fontWeight={700} gutterBottom color={ theme.palette.primary.dark}>
         Dashboard Overview
       </Typography>
-      <Typography variant="body1" color="textSecondary" gutterBottom>
+      <Typography variant="body1" color={theme.palette.text.secondary} gutterBottom>
         Welcome to Menurithm, your intelligent menu planning assistant. This dashboard will soon display key insights into your restaurant’s operations — including real-time inventory levels, sales performance, and generated menu suggestions.
       </Typography>
 
@@ -17,7 +20,7 @@ const Home = () => {
             elevation={2}
             sx={{ p: 3, textAlign: "center", minHeight: 100 }}
           >
-            <Typography variant="subtitle1" color="textSecondary">
+            <Typography variant="subtitle1" color={theme.palette.text.secondary}>
               Inventory Items
             </Typography>
             <Typography variant="h5" fontWeight="bold">
@@ -31,7 +34,7 @@ const Home = () => {
             elevation={2}
             sx={{ p: 3, textAlign: "center", minHeight: 100 }}
           >
-            <Typography variant="subtitle1" color="textSecondary">
+            <Typography variant="subtitle1" color={theme.palette.text.secondary}>
               Total Sales (This Month)
             </Typography>
             <Typography variant="h5" fontWeight="bold">
@@ -45,7 +48,7 @@ const Home = () => {
             elevation={2}
             sx={{ p: 3, textAlign: "center", minHeight: 100 }}
           >
-            <Typography variant="subtitle1" color="textSecondary">
+            <Typography variant="subtitle1" color={theme.palette.text.secondary}>
               Suggested Dishes
             </Typography>
             <Typography variant="h5" fontWeight="bold">
@@ -58,4 +61,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Dashboard;

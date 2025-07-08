@@ -1,98 +1,132 @@
 import React, { useState } from "react";
 import { getGeneratedMenuSmart } from "../api/menu";
-import { CardContent, Typography, CircularProgress, List, ListItem, ListItemText, Button, Snackbar, Alert, Divider } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Typography,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Button,
+  Snackbar,
+  Alert,
+  Divider,
+} from "@mui/material";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { motion } from "framer-motion";
 
 interface MenuManagerProps {
   refreshKey: number;
   setRefreshKey: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const MenuManager:React.FC<MenuManagerProps> = ({ refreshKey, setRefreshKey }) => {
-    const [smartMenu, setSmartMenu] = useState<any[]>([]);
-    const [smartLoading, setSmartLoading] = useState(false);
-    const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+const MenuManager: React.FC<MenuManagerProps> = ({ }) => {
+  const [smartMenu, setSmartMenu] = useState<any[]>([]);
+  const [smartLoading, setSmartLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    message: string;
+    severity: "success" | "error";
+  } | null>(null);
 
-    const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
+  const showSnackbar = (message: string, severity: "success" | "error") =>
+    setSnackbar({ message, severity });
 
-    const handleGenerateSmartMenu = async () => {
-        setSmartLoading(true);
-        try {
-        const data = await getGeneratedMenuSmart();
-        setSmartMenu(data.dishes);
-        setRefreshKey(prev => prev + 1);
-        showSnackbar("Menu generated!", "success");
-        } catch (err: any) {
-        showSnackbar(err.message || "Failed to generate menu", "error");
-        } finally {
-        setSmartLoading(false);
-        }
-    };
+  const handleGenerateSmartMenu = async () => {
+    setSmartLoading(true);
+    try {
+      const data = await getGeneratedMenuSmart();
+      // Fix: If API returns { dishes: [...] }, use data.dishes; else use data directly
+      const menu = Array.isArray(data) ? data : (data?.dishes || []);
+      setSmartMenu(menu);
+      showSnackbar("Menu generated successfully!", "success");
+    } catch (err) {
+      showSnackbar("Failed to generate menu.", "error");
+    } finally {
+      setSmartLoading(false);
+    }
+  };
 
-    const handleExportPDF = () => {
-        const doc = new jsPDF();
-        doc.text("Smart Menu", 14, 16);
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Restaurant Menu", 14, 20);
+    const tableData = smartMenu.map((item) => [item.name, item.popularity_score, item.servings]);
+    autoTable(doc, {
+      head: [["Dish", "Popularity Score", "Servings"]],
+      body: tableData,
+      startY: 30,
+    });
+    doc.save("menu.pdf");
+  };
 
-        autoTable(doc, {
-            startY: 22,
-            head: [["Dish Name", "Servings", "Popularity"]],
-            body: smartMenu.map(item => [
-                item.name,
-                item.servings,
-                item.popularity_score
-            ]),
-        });
+  return (
+    <motion.div
+      className="p-6 max-w-4xl mx-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      whileInView={{ opacity: 1 }}
+    >
+      <Card elevation={3} className="mb-6" sx={{ }}>
+        <CardContent>
+          <Typography variant="h5" className="mb-4">
+            Smart Menu Generator
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={handleGenerateSmartMenu}
+            disabled={smartLoading}
+            className="mr-4"
+          >
+            {smartLoading ? <CircularProgress size={24} /> : "Generate Menu"}
+          </Button>
+          {smartMenu.length > 0 && (
+            <Button variant="outlined" onClick={exportPDF}>
+              Export PDF
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
-        doc.save("smart_menu.pdf");
-    };
+      <Divider className="mb-12" />
 
-   return (
-    <CardContent key={refreshKey}>
-        <Typography variant="h5" fontWeight={600} gutterBottom color="primary">
-           Smart Menu
-        </Typography>
-        <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-           Generate a menu based on current inventory and dish popularity.
-        </Typography>
-        <Button
-            variant="outlined"
-            onClick={handleExportPDF}
-            sx={{ mb: 2, ml: 2 }}
-            disabled={smartMenu.length === 0}
-        >
-             Export as PDF
-        </Button>
-
-        <Divider sx={{ my: 3 }} />
-        <Button variant="contained" onClick={handleGenerateSmartMenu} sx={{ mb: 2 }}>
-            Generate Menu
-        </Button>
-        {smartLoading ? (
-            <CircularProgress />
-        ) : (
-            <List dense>
-            {smartMenu.map((item, i) => (
-                <ListItem key={i}>
-                <ListItemText
-                    primary={`${item.name}`}
-                    secondary={`Servings: ${item.servings}, Popularity: ${item.popularity_score}`}
-                    />
+      {smartMenu.length > 0 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Generated Menu
+            </Typography>
+            <Divider className="mb-4" />
+            <List>
+              {smartMenu.map((item, index) => (
+                <ListItem key={index} divider>
+                  <ListItemText
+                    primary={item.name}
+                    secondary={`Popularity Score: ${item.popularity_score}, Servings: ${item.servings}`}
+                  />
                 </ListItem>
-            ))}
+              ))}
             </List>
-        )}
+          </CardContent>
+        </Card>
+      )}
+
+      {snackbar && (
         <Snackbar
           open={!!snackbar}
-          autoHideDuration={3000}
+          autoHideDuration={4000}
           onClose={() => setSnackbar(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)}>
-            {snackbar?.message}
+          <Alert
+            onClose={() => setSnackbar(null)}
+            severity={snackbar.severity}
+            variant="filled"
+          >
+            {snackbar.message}
           </Alert>
         </Snackbar>
-    </CardContent>
+      )}
+    </motion.div>
   );
 };
 
