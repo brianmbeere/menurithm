@@ -33,6 +33,15 @@ const PageFrame = () => {
     navigate("/account");
   };
 
+   const handleLogout = () => {
+    // Navigate to account settings page
+    navigate("/");
+  };
+
+  const handleLogoClick = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <Box sx={{ display: "flex", fontFamily: theme.typography.fontFamily, backgroundColor: theme.palette.background.default }}>
       <CssBaseline />
@@ -45,10 +54,11 @@ const PageFrame = () => {
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
         drawerWidth={drawerExpanded ? drawerWidth : collapsedDrawerWidth}
-        onLogout={handleAccountSettings}
+        onLogout={handleLogout}
         // @ts-ignore
         setExpanded={setDrawerExpanded}
         expanded={drawerExpanded}
+        onLogoClick={handleLogoClick}
       />
 
       {/* AppBar and Main Content */}

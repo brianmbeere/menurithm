@@ -1,6 +1,6 @@
 import {
   Drawer, List, ListItem, ListItemText, ListItemIcon,
-  Divider, ListItemButton, Button, Toolbar, Box, Tooltip
+  Divider, ListItemButton, Button, Toolbar, Box, Tooltip, Typography, IconButton
 } from "@mui/material";
 import {
   ReceiptIcon,
@@ -8,6 +8,7 @@ import {
 } from "./SVGIcons";
 import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import logo from '../assets/menurithm-logo-white.png';
 
 interface DashboardNavigationProps {
   activeTab: number;
@@ -17,6 +18,7 @@ interface DashboardNavigationProps {
   setMobileOpen: (open: boolean) => void;
   drawerWidth: number;
   onLogout: () => void;
+  onLogoClick: () => void;
 }
 
 const sections = [
@@ -43,14 +45,11 @@ const DashboardNavigation = ({
   setMobileOpen,
   drawerWidth,
   onLogout,
+  onLogoClick,
 }: DashboardNavigationProps) => {
   const [expanded] = useState(true);
   const toggleDrawer = () => setMobileOpen(!mobileOpen);
   const theme = useTheme();
-  { /*
-    
-
-    const handleExpandToggle = () => setExpanded((prev) => !prev); */}
 
   const currentDrawerWidth = expanded ? drawerWidth : COLLAPSED_WIDTH;
 
@@ -64,7 +63,35 @@ const DashboardNavigation = ({
           minHeight: 56,
           px: 1,
         }}
-      >      
+      >
+         <IconButton edge="start" onClick={onLogoClick}>
+            <img 
+              src={logo} 
+              alt="Menurithm Logo" 
+              style={{
+                height: 30,
+                objectFit: "contain",
+              }}
+            />
+          </IconButton>
+          <Typography
+            variant="h6"
+            noWrap
+            component="a"
+            href="dashboard"
+            sx={{
+              mr: 1,
+              display: { xs: 'flex', md: 'flex' },
+              fontFamily: theme.typography.fontFamily,
+              fontWeight: 700,
+              letterSpacing: '.3rem',
+              color: 'inherit',
+              textDecoration: 'none',
+              flexGrow: 1,
+            }}
+          >
+            Menurithm
+          </Typography>      
         {/* 
         <IconButton onClick={handleExpandToggle} size="small" aria-label={expanded ? "Collapse drawer" : "Expand drawer"}>
           {expanded ? <DrawerCollapseIcon /> : <DrawerExpandIcon />}

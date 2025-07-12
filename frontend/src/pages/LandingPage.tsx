@@ -51,28 +51,17 @@ const LandingPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Typography
-              variant="h2"
-              fontWeight={700}
-              gutterBottom
-              sx={{
-                color: theme.palette.primary.main,
-                fontFamily: theme.typography.h2?.fontFamily || theme.typography.fontFamily,
-              }}
-            >
-              Menurithm
-            </Typography>
-            <Typography
-              variant="h5"
-              color="text.primary"
-              paragraph
-              sx={{
-                color: theme.palette.text.primary,
-                fontFamily: theme.typography.fontFamily,
-              }}
-            >
-              AI-powered menus that make your kitchen smarter.
-            </Typography>
+          
+            <motion.img
+              src="./menurithm-logo-transparent.png"
+              alt="Menurithm Logo"
+              width="80%"
+              height="auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1 }}
+              style={{ maxWidth: '400px' }}
+            />
             <Box mt={4}>
               <Button
                 variant="contained"
