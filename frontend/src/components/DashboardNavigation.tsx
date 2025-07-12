@@ -4,9 +4,8 @@ import {
 } from "@mui/material";
 import {
   ReceiptIcon,
-  ListAltIcon, HomeIcon, LogoutIcon,DishesIcon
+  ListAltIcon, HomeIcon, LogoutIcon,DishesIcon, DrawerExpandIcon, DrawerCollapseIcon,
 } from "./SVGIcons";
-import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import logo from '../assets/menurithm-logo-white.png';
 
@@ -19,6 +18,8 @@ interface DashboardNavigationProps {
   drawerWidth: number;
   onLogout: () => void;
   onLogoClick: () => void;
+  setExpanded: (expanded: boolean) => void;
+  expanded: boolean;
 }
 
 const sections = [
@@ -46,11 +47,12 @@ const DashboardNavigation = ({
   drawerWidth,
   onLogout,
   onLogoClick,
+  setExpanded,
+  expanded,
 }: DashboardNavigationProps) => {
-  const [expanded] = useState(true);
   const toggleDrawer = () => setMobileOpen(!mobileOpen);
   const theme = useTheme();
-
+  console.log(expanded)
   const currentDrawerWidth = expanded ? drawerWidth : COLLAPSED_WIDTH;
 
   const drawerContent = (
@@ -145,8 +147,8 @@ const DashboardNavigation = ({
         ))}
       </List>
       <Divider />
-      <Box sx={{ p: expanded ? 2 : 1, pb: expanded ? 2 : 1 }}>
-        <Tooltip title="Sign out of Menurithm" placement={expanded ? "top" : "right"}>
+      <Box sx={{ p: expanded ? 2: 1, pb: expanded ? 2 : 1, display:"flex", flexDirection:expanded? "row":"column" }} >
+        <Tooltip title="Sign out of Menurithm" placement={expanded ? "top" : "right"} >
           <Button
             variant="contained"
             fullWidth={expanded}
@@ -165,6 +167,16 @@ const DashboardNavigation = ({
           >
             {expanded ? "Logout" : <LogoutIcon />}
           </Button>
+        </Tooltip>
+        <Tooltip title="Expand or Collapse" sx={{ p: expanded ? 2: 1, pb: expanded ? 2 : 1}}>
+          <IconButton 
+            sx={{
+              minWidth: 0,
+              px: expanded ? 2 : 1,
+            }}
+          >
+            { expanded ?   <DrawerCollapseIcon onClick={() => { setExpanded(false); }}/> :  <DrawerExpandIcon onClick={() => { setExpanded(true); }}/> }
+          </IconButton>
         </Tooltip>
       </Box>
     </Box>
