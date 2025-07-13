@@ -24,6 +24,14 @@ import DashboardAppBar from "../components/DashboardAppBar";
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
 
+const tabRoutes = [
+  { title: "Dashboard", path: "/dashboard" },
+  { title: "Inventory", path: "/dashboard/inventory" },
+  { title: "Sales", path: "/dashboard/sales" },
+  { title: "Dishes", path: "/dashboard/dishes" },
+  { title: "Menu Generator", path: "/dashboard/menu" },
+];
+
 const PageFrame = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
@@ -64,6 +72,7 @@ const PageFrame = () => {
           isMobile={isMobile}
           onMenuClick={toggleDrawer}
           onAccount={handleAccountSettings}
+          breadcrumb={tabRoutes[activeTab]}
         />
       </Box>
 

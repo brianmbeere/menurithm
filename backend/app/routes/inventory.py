@@ -3,6 +3,7 @@ from app.db.database import SessionLocal
 from app.models.inventory import InventoryItem
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.schemas.inventory import InventoryItemOut, InventoryItemIn
 from typing import List
 import csv
@@ -120,3 +121,12 @@ def update_inventory_item(
     db.commit()
     db.refresh(item)
     return item
+
+@router.get("/inventory/summary")
+def get_inventory_summary(db: Session = Depends(get_db)):
+    results = (
+        db.query(InventoryItem.category, func.count(InventoryItem.id))
+        .group_by(InventoryItem.category)
+        .all()
+    )
+    return [{"name": category or "Uncategorized", "value": count} for category, count in results]

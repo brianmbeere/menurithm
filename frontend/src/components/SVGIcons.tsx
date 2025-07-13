@@ -125,3 +125,12 @@ export const DishesIcon = () => (
 );
 
 
+export const FastFoodIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M1 21h22v-2H1v2zm19.43-13.04c-.07-.58-.56-.96-1.13-.96H13V5h3V3H8v2h3v2H4.7c-.57 0-1.06.38-1.13.96L3 11h18l-.57-3.04zM6 13c-1.1 0-2 .9-2 2v2h16v-2c0-1.1-.9-2-2-2H6z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
