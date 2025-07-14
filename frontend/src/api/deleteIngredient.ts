@@ -1,7 +1,8 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 export const deleteIngredient = async (ingredientName: string): Promise<void> => {
-  const res = await fetch(`${BASE_URL}/inventory/${ingredientName}`, {
+  const res = await authFetch(`${BASE_URL}/inventory/${ingredientName}`, {
     method: "DELETE",
   });
   if (!res.ok) {

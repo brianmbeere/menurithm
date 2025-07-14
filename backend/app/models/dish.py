@@ -6,6 +6,7 @@ class Dish(Base):
     __tablename__ = "dishes"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     name = Column(String, unique=True, nullable=False)
     description = Column(String, nullable=True)
 
@@ -16,6 +17,7 @@ class DishIngredient(Base):
     __tablename__ = "dish_ingredients"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     dish_id = Column(Integer, ForeignKey("dishes.id"), nullable=False)
     ingredient_id = Column(Integer, ForeignKey("inventory.id"), nullable=False)
     quantity = Column(Float, nullable=False)

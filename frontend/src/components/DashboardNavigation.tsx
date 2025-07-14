@@ -52,7 +52,7 @@ const DashboardNavigation = ({
 }: DashboardNavigationProps) => {
   const toggleDrawer = () => setMobileOpen(!mobileOpen);
   const theme = useTheme();
-  console.log(expanded)
+  
   const currentDrawerWidth = expanded ? drawerWidth : COLLAPSED_WIDTH;
 
   const drawerContent = (
@@ -199,7 +199,7 @@ const DashboardNavigation = ({
           fontFamily: 'Inter, Poppins, sans-serif',
           borderRight: "none",
           overflowX: "hidden",
-          borderRadius: 0, // remove rounded corners
+          borderRadius: 0, 
         },
       }}
     >

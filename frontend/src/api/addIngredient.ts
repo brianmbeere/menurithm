@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 
 export interface IngredientInput {
@@ -11,7 +12,7 @@ export interface IngredientInput {
 }
 
 export const addIngredient = async (ingredient: IngredientInput) => {
-  const res = await fetch(`${BASE_URL}/inventory`, {
+  const res = await authFetch (`${BASE_URL}/inventory`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(ingredient),

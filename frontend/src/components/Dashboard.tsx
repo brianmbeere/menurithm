@@ -24,10 +24,6 @@ import fetchInventorySummary  from "../api/fetchInventorySummary";
 import { fetchSales } from "../api/fetchSales";
 import groupSalesByDay from '../hooks/groupSalesData';
 
-
-// Dummy data
-
-
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const Dashboard = () => {
@@ -88,7 +84,7 @@ const Dashboard = () => {
       {/* Charts */}
       <Grid container spacing={4} sx={{ mt: 2 }}>
         {/* Inventory Chart - now 6/12 wide */}
-        <Grid sx={{ xs:6, md:12}}>
+        <Grid sx={{ xs:12, md:12}}>
           <Paper elevation={2} sx={{ p: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Inventory Overview
@@ -98,7 +94,7 @@ const Dashboard = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
                     data={inventoryData}
@@ -134,8 +130,8 @@ const Dashboard = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={salesData}>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={salesData} >
                   <XAxis dataKey="day" />
                   <YAxis />
                   <Tooltip />

@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 
 interface DishInput {
@@ -14,7 +15,7 @@ interface DishIngredientInput {
 }
 
 export const updateDish = async (id: number, dish: DishInput) => {
-  const res = await fetch(`${BASE_URL}/dishes/${id}`, {
+  const res = await authFetch(`${BASE_URL}/dishes/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dish)

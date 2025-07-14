@@ -11,6 +11,7 @@ import {
   Paper
 } from '@mui/material';
 import { getFirestore, setDoc, doc } from 'firebase/firestore';
+import { BASE_URL } from "../utils";
 
 const SignUpForm = () => {
   const [email, setEmail] = useState('');
@@ -28,7 +29,9 @@ const SignUpForm = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      const idToken = await user.getIdToken();
       const db = getFirestore();
+
       await setDoc(doc(db, 'users', user.uid), {
         fullName,
         organization,
@@ -39,7 +42,32 @@ const SignUpForm = () => {
         email,
         createdAt: new Date().toISOString(),
       });
-      navigate('/dashboard');
+
+      const userDetails = {
+        full_name: fullName,
+        organization,
+        title,
+        country,
+        use_case: useCase,
+        linkedin,
+        email,
+        firebase_uid: user.uid,
+      };
+
+      const response = await fetch(`${BASE_URL}/users/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`  // 🔐 Pass token
+        },
+        body: JSON.stringify(userDetails),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to save user in backend");
+      }
+
+    navigate('/dashboard');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

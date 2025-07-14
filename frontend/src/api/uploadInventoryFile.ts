@@ -1,11 +1,12 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 
 const uploadInventoryFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/upload-inventory`, {
+  const res = await authFetch(`${BASE_URL}/upload-inventory`, {
     method: "POST",
     body: formData,
   });

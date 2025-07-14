@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 export interface SaleInput {
   timestamp: string; // ISO string (e.g. 2025-06-27T12:00:00Z)
@@ -9,7 +10,7 @@ export interface SaleInput {
 
 export const addSale = async (sale: SaleInput) => {
   console.log("Adding sale:", sale);
-  const res = await fetch(`${BASE_URL}/sales`, {
+  const res = await authFetch(`${BASE_URL}/sales`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sale),

@@ -6,6 +6,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     timestamp = Column(DateTime, nullable=False)
     dish_id = Column(Integer, ForeignKey("dishes.id"))
     quantity_sold = Column(Integer, nullable=False) 

@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 
 export interface SaleInput {
@@ -9,7 +10,7 @@ export interface SaleInput {
 }
 
 export const updateSale = async (id: number, sale: SaleInput) => {
-  const res = await fetch(`${BASE_URL}/sales/${id}`, {
+  const res = await authFetch(`${BASE_URL}/sales/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sale)

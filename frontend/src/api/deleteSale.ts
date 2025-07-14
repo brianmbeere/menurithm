@@ -1,7 +1,8 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 export const deleteSale = async (saleId: number): Promise<void> => {
-  const res = await fetch(`${BASE_URL}/sales/${saleId}`, {
+  const res = await authFetch(`${BASE_URL}/sales/${saleId}`, {
     method: "DELETE",
   });
   if (!res.ok) {

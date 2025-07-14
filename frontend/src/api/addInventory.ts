@@ -1,10 +1,11 @@
 import { type InventoryItem } from "./updateInventory";
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 
 const addInventory = async (item: InventoryItem) => {
   console.log("Adding inventory item:", item);
-  const res = await fetch(`${BASE_URL}/inventory`, {
+  const res = await authFetch (`${BASE_URL}/inventory`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(item),

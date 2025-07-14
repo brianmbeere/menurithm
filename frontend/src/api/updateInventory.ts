@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 export interface InventoryItem {
   ingredient_name: string;
@@ -11,7 +12,7 @@ export interface InventoryItem {
 
 
 export const updateInventory = async (item: InventoryItem) => {
-  const res = await fetch(`${BASE_URL}/inventory/${item.ingredient_name}`, {
+  const res = await authFetch(`${BASE_URL}/inventory/${item.ingredient_name}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(item)

@@ -1,4 +1,5 @@
 import { BASE_URL } from "../utils";
+import { authFetch } from "../hooks/authFetch";
 
 export interface DishIngredient {
   ingredient_id: number;
@@ -15,7 +16,7 @@ export interface Dish {
 }
 
 export const fetchDishes = async (): Promise<Dish[]> => {
-  const res = await fetch(`${BASE_URL}/dishes`);
+  const res = await authFetch(`${BASE_URL}/dishes`);
   if (!res.ok) throw new Error("Failed to fetch dishes");
   return res.json();
 };
