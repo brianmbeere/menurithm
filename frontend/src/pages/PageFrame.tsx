@@ -33,7 +33,6 @@ const tabRoutes = [
 ];
 
 const PageFrame = () => {
-  const [refreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerExpanded, setDrawerExpanded] = useState(true);
@@ -114,14 +113,14 @@ const PageFrame = () => {
               {activeTab === 0 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
-                    <Dashboard key={refreshKey} />
+                    <Dashboard  />
                   </CardContent>
                 </Card>
               )}
               {activeTab === 1 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
-                    <InventoryManager key={refreshKey} />
+                    <InventoryManager />
                   </CardContent>
                 </Card>
               )}
