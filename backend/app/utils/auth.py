@@ -5,24 +5,11 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.user import User
 import os
-from dotenv import load_dotenv
-import tempfile
 
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-firebase_creds_raw = os.getenv("FIREBASE_CREDENTIALS_JSON")
-
-if not firebase_admin._apps:
-    if not firebase_creds_raw:
-        raise RuntimeError("FIREBASE_CREDENTIALS_JSON not set in .env")
-
-# Parse and write to a temp file
-with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".json") as temp_json:
-    temp_json.write(firebase_creds_raw)
-    temp_json_path = temp_json.name
-
-# Initialize Firebase using the temp file path
-cred = credentials.Certificate(temp_json_path)
+path_to_json = os.path.join(BASE_DIR,"../core/menurithm-firebase-adminsdk-fbsvc-36044de71d.json")
+cred = credentials.Certificate(path_to_json)
 firebase_admin.initialize_app(cred)
 
 def get_db():
