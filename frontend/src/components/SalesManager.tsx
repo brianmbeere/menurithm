@@ -10,7 +10,7 @@ import { deleteSale } from "../api/deleteSale";
 import { uploadSalesFile } from "../api/uploadSales";
 import { fetchSales, type Sale } from "../api/fetchSales";
 import { updateSale } from "../api/updateSale";
-import { Delete, Edit } from "./SVGIcons";
+import { Delete, Edit, UploadFile } from "./SVGIcons";
 
 const SalesManager = () => {
   const [form, setForm] = useState<SaleInput>({
@@ -142,19 +142,34 @@ const SalesManager = () => {
       </Grid>
 
       <Divider sx={{ my: 4 }} />
-
-      <Typography variant="h6" gutterBottom>
-        Upload CSV
-      </Typography>
-      <Grid container spacing={2} alignItems="center">
-         <Grid sx={{ xs:12, sm:8 }}>
-          <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
+      <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+        <Grid columns={{ xs: 12, sm: 4 }} >
+        <Button
+          variant="outlined"
+          component="label"
+          startIcon={<UploadFile />}
+          fullWidth
+        >
+          Choose CSV File
+          <input
+            type="file"
+            hidden
+            accept=".csv"
+            onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+          />
+        </Button>
         </Grid>
-        <Grid sx={{ xs:12, sm:4 }}>
-          <Button variant="outlined" fullWidth onClick={handleUpload} disabled={!csvFile || uploading}>
+        <Grid columns={{ xs: 12, sm: 4 }} >
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleUpload}
+            startIcon={<UploadFile />}
+            disabled={!csvFile || uploading}
+          >
             {uploading ? "Uploading..." : "Upload CSV"}
           </Button>
-        </Grid>
+       </Grid>
       </Grid>
 
       <Divider sx={{ my: 4 }} />

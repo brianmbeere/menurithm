@@ -27,7 +27,7 @@ def create_user(
     firebase_user: dict = Depends(verify_firebase_token)  # 👈 Firebase user injected here
 ):
     firebase_uid = firebase_user["uid"]
-
+    print("User....", user)
     existing = db.query(User).filter(User.firebase_uid == firebase_uid).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")

@@ -18,5 +18,8 @@ export interface Dish {
 export const fetchDishes = async (): Promise<Dish[]> => {
   const res = await authFetch(`${BASE_URL}/dishes`);
   if (!res.ok) throw new Error("Failed to fetch dishes");
-  return res.json();
+
+  const data = await res.json(); 
+
+  return data;
 };

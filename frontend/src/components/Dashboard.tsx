@@ -94,7 +94,7 @@ const Dashboard = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width={400} height={400}>
                 <PieChart>
                   <Pie
                     data={inventoryData}
@@ -130,9 +130,17 @@ const Dashboard = () => {
                 <CircularProgress />
               </Box>
             ) : (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width={400} height={400}>
                 <LineChart data={salesData} >
-                  <XAxis dataKey="day" />
+                  <XAxis 
+                    dataKey="day"
+                    interval={0}
+                    type="category"
+                    scale="point"
+                    domain={[
+                      "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+                    ]} 
+                  />
                   <YAxis />
                   <Tooltip />
                   <Line

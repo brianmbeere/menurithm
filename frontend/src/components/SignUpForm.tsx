@@ -44,16 +44,16 @@ const SignUpForm = () => {
       });
 
       const userDetails = {
-        full_name: fullName,
+        fullName,
         organization,
         title,
         country,
-        use_case: useCase,
+        useCase,
         linkedin,
         email,
         firebase_uid: user.uid,
       };
-
+      
       const response = await fetch(`${BASE_URL}/users/`, {
         method: "POST",
         headers: {
@@ -69,12 +69,16 @@ const SignUpForm = () => {
 
     navigate('/dashboard');
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Unexpected error occurred.');
+        if (err instanceof Error) {
+          if ((err as any).code === 'auth/email-already-in-use') {
+            setError("Email already in use. Try signing in or use a different email.");
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError('Unexpected error occurred.');
+        }
       }
-    }
   };
 
   return (

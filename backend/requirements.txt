@@ -10,7 +10,6 @@ click==8.2.1
 cryptography==45.0.5
 dotenv==0.9.9
 fastapi==0.115.13
-firebase-admin==6.9.0
 google-api-core==2.25.1
 google-api-python-client==2.176.0
 google-auth==2.40.3

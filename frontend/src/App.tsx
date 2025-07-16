@@ -42,7 +42,10 @@ function App() {
             } />
           <Route path="/signup" element={<SignUpForm />} />
           <Route path="/signin" element={<SignInForm />} />
-          <Route path="/account" element={<AccountSettings />} />
+          <Route path="/account" element={
+            <ProtectedRoute> 
+              <AccountSettings /> 
+            </ProtectedRoute>} />
           <Route path="*" element={<div>404 Not Found</div>} />
         </Routes>
       </Router>

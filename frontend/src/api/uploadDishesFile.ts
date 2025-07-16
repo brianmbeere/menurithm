@@ -1,19 +1,17 @@
 import { BASE_URL } from "../utils";
 import { authFetch } from "../hooks/authFetch";
 
-export const uploadSalesFile = async (file: File) => {
-  console.log("Uploading sales CSV:", file);
+
+const uploadDishesFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await authFetch (`${BASE_URL}/upload-sales`, {
+  const res = await authFetch(`${BASE_URL}/upload-dishes`, {
     method: "POST",
     body: formData,
   });
 
-  if (!res.ok) {
-    throw new Error("Failed to upload sales CSV");
-  }
+  if (!res.ok) throw new Error("Failed to upload dishes CSV");
 
   const data = await res.json(); 
   console.log(data)
@@ -21,3 +19,4 @@ export const uploadSalesFile = async (file: File) => {
   return data;
 };
 
+export default uploadDishesFile;

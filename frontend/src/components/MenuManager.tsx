@@ -113,7 +113,7 @@ const MenuManager: React.FC = () => {
                       {item.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {item.description || "A delightful signature dish prepared with fresh ingredients."}
+                      {item.description}
                     </Typography>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
                       <Chip label={`Score: ${item.popularity_score}`} size="small" color="primary" />

@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import {
   Card, CardContent, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box, Autocomplete,
-  Snackbar, Alert
+  Snackbar, Alert, Stack
 } from "@mui/material";
 import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
 import { type DishOutput, type DishInput, createDish } from "../api/createDish";
 import deleteDish from "../api/deleteDish";
 import { updateDish } from "../api/updateDish";
-import { Delete, Edit, ExpandLess, ExpandMore } from "./SVGIcons";
+import { Delete, Edit, ExpandLess, ExpandMore, UploadFile } from "./SVGIcons";
 import fetchInventory from "../api/fetchInventory";
+import uploadDishesFile from "../api/uploadDishesFile";
 
 interface IngredientOption {
   id: number;
@@ -46,6 +47,7 @@ const IngredientInputs = ({
 
 const DishManager = () => {
   const [dishes, setDishes] = useState<DishOutput[]>([]);
+  const [search, setSearch] = useState("");
   const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
   const [dishForm, setDishForm] = useState<DishInput>({
     name: "",
@@ -54,6 +56,7 @@ const DishManager = () => {
   });
   const [editDishId, setEditDishId] = useState<number | null>(null);
   const [showIngredients, setShowIngredients] = useState<boolean>(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
   useEffect(() => {
@@ -128,6 +131,12 @@ const DishManager = () => {
     }
   };
 
+  const removeIngredientField = (index: number) => {
+    const ingredients = [...dishForm.ingredients];
+    ingredients.splice(index, 1);
+    setDishForm({ ...dishForm, ingredients });
+  };
+
   const handleEdit = (dish: DishOutput) => {
     setDishForm({
       name: dish.name,
@@ -153,6 +162,20 @@ const DishManager = () => {
     }
   };
 
+  const handleCSVUploadDish = async () => {
+   if (!csvFile) return;
+    try {
+      await uploadDishesFile(csvFile);
+      setCsvFile(null);
+      const updated = await fetchDishes();
+      setDishes(updated);
+      showSnackbar("CSV uploaded successfully!", "success");
+    } catch (err: any) {
+      showSnackbar(err.message, "error");
+    }
+  };
+
+
   return (
     <Card sx={{ mt: 4 }} elevation={3}>
       <CardContent>
@@ -161,6 +184,47 @@ const DishManager = () => {
         </Typography>
 
         <Divider sx={{ my: 3 }} />
+
+        {/* Upload Section */}
+        <Typography variant="subtitle1" gutterBottom>Upload Dishes CSV</Typography>
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Grid columns={{ xs: 12, sm: 4 }} >
+            <TextField
+              fullWidth
+              placeholder="Search by name, category, or location"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              size="small"
+            />
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 4 }} >
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<UploadFile />}
+              fullWidth
+            >
+              Choose CSV File
+              <input
+                type="file"
+                hidden
+                accept=".csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 4 }} >
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={handleCSVUploadDish}
+              startIcon={<UploadFile />}
+              disabled={!csvFile}
+            >
+              Upload
+            </Button>
+          </Grid>
+        </Grid>
 
         <Typography variant="h6" gutterBottom>
           {editDishId !== null ? "Edit Dish" : "Create Dish"}
@@ -180,9 +244,12 @@ const DishManager = () => {
           </Grid>
           <Collapse in={showIngredients} timeout={400} style={{ width: "100%" }}>
             <Grid container spacing={2}>
-              {dishForm.ingredients.map((ing, i) => (
-                <IngredientInputs key={i} index={i} ing={ing} onChange={handleIngredientChange} ingredientOptions={ingredientOptions} />
-              ))}
+             {dishForm.ingredients.map((ing, i) => (
+              <Stack key={i} spacing={2} direction="column">
+                <IngredientInputs index={i} ing={ing} onChange={handleIngredientChange} ingredientOptions={ingredientOptions} />
+                <Button onClick={() => removeIngredientField(i)}>Remove</Button>
+              </Stack>
+            ))}
               <Grid columns={{ xs: 12 }}>
                 <Button onClick={addIngredientField}>Add Ingredient</Button>
               </Grid>
