@@ -4,9 +4,9 @@ from fastapi import HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.user import User
-import json
 import os
 from dotenv import load_dotenv
+import tempfile
 
 load_dotenv()
 
@@ -16,8 +16,13 @@ if not firebase_admin._apps:
     if not firebase_creds_raw:
         raise RuntimeError("FIREBASE_CREDENTIALS_JSON not set in .env")
 
-firebase_creds_dict = json.loads(firebase_creds_raw)
-cred = credentials.Certificate(firebase_creds_dict)
+# Parse and write to a temp file
+with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".json") as temp_json:
+    temp_json.write(firebase_creds_raw)
+    temp_json_path = temp_json.name
+
+# Initialize Firebase using the temp file path
+cred = credentials.Certificate(temp_json_path)
 firebase_admin.initialize_app(cred)
 
 def get_db():
