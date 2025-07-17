@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../hooks/initializeFirebase';
 import { useNavigate } from 'react-router-dom';
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import {
   Container,
   TextField,
@@ -13,72 +16,65 @@ import {
 import { getFirestore, setDoc, doc } from 'firebase/firestore';
 import { BASE_URL } from "../utils";
 
-const SignUpForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [organization, setOrganization] = useState('');
-  const [title, setTitle] = useState('');
-  const [country, setCountry] = useState('');
-  const [useCase, setUseCase] = useState('');
-  const [linkedin, setLinkedin] = useState('');
-  const navigate = useNavigate();
+const schema = yup.object({
+  fullName: yup.string().required("Full Name is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  password: yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+  organization: yup.string().required("Organization is required"),
+  title: yup.string().nullable(),
+  country: yup.string().required("Country is required"),
+  useCase: yup.string().nullable(),
+  linkedin: yup.string().url("Invalid URL").nullable().notRequired(),
+});
 
-  const handleSignUp = async () => {
+const SignUpForm = () => {
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+  const navigate = useNavigate();
+  const [firebaseError, setFirebaseError] = useState("");
+
+  const onSubmit = async (data: any) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       const idToken = await user.getIdToken();
       const db = getFirestore();
 
-      await setDoc(doc(db, 'users', user.uid), {
-        fullName,
-        organization,
-        title,
-        country,
-        useCase,
-        linkedin,
-        email,
+      await setDoc(doc(db, "users", user.uid), {
+        ...data,
         createdAt: new Date().toISOString(),
       });
 
-      const userDetails = {
-        fullName,
-        organization,
-        title,
-        country,
-        useCase,
-        linkedin,
-        email,
-        firebase_uid: user.uid,
-      };
-      
       const response = await fetch(`${BASE_URL}/users/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`  // 🔐 Pass token
+          Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify(userDetails),
+        body: JSON.stringify({
+          ...data,
+          firebase_uid: user.uid,
+        }),
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to save user in backend");
       }
 
-    navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-        if (err instanceof Error) {
-          if ((err as any).code === 'auth/email-already-in-use') {
-            setError("Email already in use. Try signing in or use a different email.");
-          } else {
-            setError(err.message);
-          }
-        } else {
-          setError('Unexpected error occurred.');
-        }
+      if ((err as any).code === "auth/email-already-in-use") {
+        setFirebaseError("Email already in use. Try signing in or use a different email.");
+      } else {
+        setFirebaseError((err as Error).message || "Unexpected error occurred.");
       }
+    }
   };
 
   return (
@@ -87,59 +83,70 @@ const SignUpForm = () => {
         <Typography variant="h5" gutterBottom>
           Sign Up
         </Typography>
-        <Box display="flex" flexDirection="column" gap={2}>
-          <TextField
-            label="Full Name"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            fullWidth
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} display="flex" flexDirection="column" gap={2}>
+          <Controller
+            name="fullName"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="Full Name" fullWidth {...field} error={!!errors.fullName} helperText={errors.fullName?.message} />
+            )}
           />
-          <TextField
-            label="Organization/Company"
-            value={organization}
-            onChange={e => setOrganization(e.target.value)}
-            fullWidth
+          <Controller
+            name="organization"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="Organization/Company" fullWidth {...field} error={!!errors.organization} helperText={errors.organization?.message} />
+            )}
           />
-          <TextField
-            label="Professional Title/Role"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            fullWidth
+          <Controller
+            name="title"
+            control={control}
+            defaultValue=""
+            render={({ field }) => <TextField label="Professional Title/Role" fullWidth {...field} />}
           />
-          <TextField
-            label="Country"
-            value={country}
-            onChange={e => setCountry(e.target.value)}
-            fullWidth
+          <Controller
+            name="country"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="Country" fullWidth {...field} error={!!errors.country} helperText={errors.country?.message} />
+            )}
           />
-          <TextField
-            label="Intended Use Case / Reason for Using"
-            value={useCase}
-            onChange={e => setUseCase(e.target.value)}
-            fullWidth
+          <Controller
+            name="useCase"
+            control={control}
+            defaultValue=""
+            render={({ field }) => <TextField label="Intended Use Case / Reason for Using" fullWidth {...field} />}
           />
-          <TextField
-            label="LinkedIn or Professional Profile URL (optional)"
-            value={linkedin}
-            onChange={e => setLinkedin(e.target.value)}
-            fullWidth
+          <Controller
+            name="linkedin"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="LinkedIn or Professional Profile URL" fullWidth {...field} error={!!errors.linkedin} helperText={errors.linkedin?.message} />
+            )}
           />
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            fullWidth
+          <Controller
+            name="email"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="Email" type="email" fullWidth {...field} error={!!errors.email} helperText={errors.email?.message} />
+            )}
           />
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            fullWidth
+          <Controller
+            name="password"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField label="Password" type="password" fullWidth {...field} error={!!errors.password} helperText={errors.password?.message} />
+            )}
           />
-          {error && <Typography color="error">{error}</Typography>}
-          <Button variant="contained" onClick={handleSignUp} fullWidth>
+
+          {firebaseError && <Typography color="error">{firebaseError}</Typography>}
+          <Button type="submit" variant="contained" fullWidth>
             Sign Up
           </Button>
           <Typography variant="body2" align="center" sx={{ mt: 2 }}>
