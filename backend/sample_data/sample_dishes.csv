@@ -1,0 +1,50 @@
+dish_name,description,ingredient_name,quantity,unit
+Grilled Chicken Breast,Perfectly seasoned grilled chicken breast served with herbs,chicken breast,0.3,kg
+Grilled Chicken Breast,Perfectly seasoned grilled chicken breast served with herbs,olive oil,0.02,L
+Grilled Chicken Breast,Perfectly seasoned grilled chicken breast served with herbs,salt,0.005,kg
+Grilled Chicken Breast,Perfectly seasoned grilled chicken breast served with herbs,black pepper,0.002,kg
+Grilled Chicken Breast,Perfectly seasoned grilled chicken breast served with herbs,garlic,0.01,kg
+Caesar Salad,Classic Caesar salad with fresh lettuce and parmesan,lettuce,1,heads
+Caesar Salad,Classic Caesar salad with fresh lettuce and parmesan,cheese,0.05,kg
+Caesar Salad,Classic Caesar salad with fresh lettuce and parmesan,olive oil,0.015,L
+Caesar Salad,Classic Caesar salad with fresh lettuce and parmesan,garlic,0.005,kg
+Caesar Salad,Classic Caesar salad with fresh lettuce and parmesan,bread,0.1,loaves
+Spaghetti Carbonara,Traditional Italian pasta with creamy sauce,pasta,0.15,kg
+Spaghetti Carbonara,Traditional Italian pasta with creamy sauce,eggs,2,pieces
+Spaghetti Carbonara,Traditional Italian pasta with creamy sauce,cheese,0.08,kg
+Spaghetti Carbonara,Traditional Italian pasta with creamy sauce,black pepper,0.003,kg
+Spaghetti Carbonara,Traditional Italian pasta with creamy sauce,olive oil,0.01,L
+Salmon Teriyaki,Fresh salmon glazed with teriyaki sauce,salmon fillets,0.25,kg
+Salmon Teriyaki,Fresh salmon glazed with teriyaki sauce,sugar,0.02,kg
+Salmon Teriyaki,Fresh salmon glazed with teriyaki sauce,salt,0.003,kg
+Salmon Teriyaki,Fresh salmon glazed with teriyaki sauce,vegetable oil,0.015,L
+Beef Burger,Juicy beef burger with fresh vegetables,ground beef,0.2,kg
+Beef Burger,Juicy beef burger with fresh vegetables,bread,0.2,loaves
+Beef Burger,Juicy beef burger with fresh vegetables,lettuce,0.1,heads
+Beef Burger,Juicy beef burger with fresh vegetables,tomatoes,0.1,kg
+Beef Burger,Juicy beef burger with fresh vegetables,onions,0.05,kg
+Vegetable Stir Fry,Fresh mixed vegetables stir-fried to perfection,bell peppers,0.15,kg
+Vegetable Stir Fry,Fresh mixed vegetables stir-fried to perfection,carrots,0.1,kg
+Vegetable Stir Fry,Fresh mixed vegetables stir-fried to perfection,mushrooms,0.12,kg
+Vegetable Stir Fry,Fresh mixed vegetables stir-fried to perfection,onions,0.08,kg
+Vegetable Stir Fry,Fresh mixed vegetables stir-fried to perfection,vegetable oil,0.02,L
+Mushroom Risotto,Creamy Italian rice dish with fresh mushrooms,rice,0.2,kg
+Mushroom Risotto,Creamy Italian rice dish with fresh mushrooms,mushrooms,0.15,kg
+Mushroom Risotto,Creamy Italian rice dish with fresh mushrooms,butter,0.03,kg
+Mushroom Risotto,Creamy Italian rice dish with fresh mushrooms,cheese,0.06,kg
+Mushroom Risotto,Creamy Italian rice dish with fresh mushrooms,onions,0.05,kg
+Greek Salad,Mediterranean salad with fresh vegetables,tomatoes,0.2,kg
+Greek Salad,Mediterranean salad with fresh vegetables,onions,0.08,kg
+Greek Salad,Mediterranean salad with fresh vegetables,bell peppers,0.1,kg
+Greek Salad,Mediterranean salad with fresh vegetables,olive oil,0.02,L
+Greek Salad,Mediterranean salad with fresh vegetables,cheese,0.08,kg
+BBQ Ribs,Tender ribs with smoky BBQ sauce,ground beef,0.4,kg
+BBQ Ribs,Tender ribs with smoky BBQ sauce,sugar,0.03,kg
+BBQ Ribs,Tender ribs with smoky BBQ sauce,salt,0.008,kg
+BBQ Ribs,Tender ribs with smoky BBQ sauce,black pepper,0.005,kg
+BBQ Ribs,Tender ribs with smoky BBQ sauce,vegetable oil,0.02,L
+Fish and Chips,Classic fried fish with golden fries,salmon fillets,0.25,kg
+Fish and Chips,Classic fried fish with golden fries,potatoes,0.3,kg
+Fish and Chips,Classic fried fish with golden fries,flour,0.1,kg
+Fish and Chips,Classic fried fish with golden fries,vegetable oil,0.1,L
+Fish and Chips,Classic fried fish with golden fries,salt,0.005,kg

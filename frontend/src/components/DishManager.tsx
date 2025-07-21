@@ -11,6 +11,7 @@ import { updateDish } from "../api/updateDish";
 import { Delete, Edit, ExpandLess, ExpandMore, UploadFile } from "./SVGIcons";
 import fetchInventory from "../api/fetchInventory";
 import uploadDishesFile from "../api/uploadDishesFile";
+import CSVHelpDialog from "./CSVHelpDialog";
 
 interface IngredientOption {
   id: number;
@@ -57,6 +58,7 @@ const DishManager = () => {
   const [editDishId, setEditDishId] = useState<number | null>(null);
   const [showIngredients, setShowIngredients] = useState<boolean>(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [showCSVHelpDialog, setShowCSVHelpDialog] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
 
   useEffect(() => {
@@ -188,7 +190,7 @@ const DishManager = () => {
         {/* Upload Section */}
         <Typography variant="subtitle1" gutterBottom>Upload Dishes CSV</Typography>
         <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid columns={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
               placeholder="Search by name, category, or location"
@@ -197,7 +199,17 @@ const DishManager = () => {
               size="small"
             />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid columns={{ xs: 12, sm: 2 }} >
+            <Button
+              variant="outlined"
+              onClick={() => setShowCSVHelpDialog(true)}
+              fullWidth
+              size="small"
+            >
+              CSV Help
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 3 }} >
             <Button
               variant="outlined"
               component="label"
@@ -315,6 +327,13 @@ const DishManager = () => {
             {snackbar?.message}
           </Alert>
         </Snackbar>
+
+        {/* CSV Help Dialog */}
+        <CSVHelpDialog
+          open={showCSVHelpDialog}
+          onClose={() => setShowCSVHelpDialog(false)}
+          uploadType="dishes"
+        />
       </CardContent>
     </Card>
   );

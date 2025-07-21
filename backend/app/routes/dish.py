@@ -29,7 +29,7 @@ def create_dish(
 ):
     existing = db.query(Dish).filter(
         Dish.name == dish_in.name,
-        Dish.user_id == user.id  # 👈 scoped to user
+        Dish.user_id == user.email  # 👈 scoped to user
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Dish already exists")
@@ -37,13 +37,13 @@ def create_dish(
     dish = Dish(
         name=dish_in.name,
         description=dish_in.description,
-        user_id=user.id  # 👈 assign ownership
+        user_id=user.email  # 👈 assign ownership
     )
 
     for ing in dish_in.ingredients:
         inventory_item = db.query(InventoryItem).filter(
             InventoryItem.id == ing.ingredient_id,
-            InventoryItem.user_id == user.id  # 👈 validate user owns the ingredient
+            InventoryItem.user_id == user.email  # 👈 validate user owns the ingredient
         ).first()
         if not inventory_item:
             raise HTTPException(status_code=400, detail=f"Ingredient with id {ing.ingredient_id} not found")
@@ -52,7 +52,7 @@ def create_dish(
             ingredient_id=ing.ingredient_id,
             quantity=ing.quantity,
             unit=ing.unit,
-            user_id=user.id,
+            user_id=user.email,
         ))
 
     db.add(dish)
@@ -69,7 +69,7 @@ def get_dishes(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    dishes = db.query(Dish).filter(Dish.user_id == user.id).all()
+    dishes = db.query(Dish).filter(Dish.user_id == user.email).all()
 
     for dish in dishes:
         for ing in dish.ingredients:
@@ -83,7 +83,7 @@ def delete_dish(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.id).first()
+    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.email).first()
     if not dish:
         raise HTTPException(status_code=404, detail="Dish not found")
 
@@ -98,7 +98,7 @@ def update_dish(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.id).first()
+    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.email).first()
     if not dish:
         raise HTTPException(status_code=404, detail="Dish not found")
 
@@ -109,7 +109,7 @@ def update_dish(
     for ing in dish_data.ingredients:
         inventory_item = db.query(InventoryItem).filter(
             InventoryItem.id == ing.ingredient_id,
-            InventoryItem.user_id == user.id
+            InventoryItem.user_id == user.email
         ).first()
         if not inventory_item:
             raise HTTPException(status_code=400, detail=f"Ingredient with id {ing.ingredient_id} not found")
@@ -148,7 +148,7 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
             # Check if dish already exists
             existing_dish = db.query(Dish).filter(
                 Dish.name.ilike(dish_name),
-                Dish.user_id == user.id
+                Dish.user_id == user.email
             ).first()
             if existing_dish:
                 continue  # Skip duplicates
@@ -156,7 +156,7 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
             new_dish = Dish(
                 name=dish_name,
                 description=description,
-                user_id=user.id,
+                user_id=user.email,
             )
             db.add(new_dish)
             db.flush()  # Get new_dish.id
@@ -166,7 +166,7 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
 
                 inventory_item = db.query(InventoryItem).filter(
                     InventoryItem.ingredient_name.ilike(ingredient_name),
-                    InventoryItem.user_id == user.id
+                    InventoryItem.user_id == user.email
                 ).first()
 
                 if not inventory_item:
@@ -177,7 +177,7 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
                     ingredient_id=inventory_item.id,
                     quantity=float(row["quantity"]),
                     unit=row["unit"].strip(),
-                    user_id=user.id,
+                    user_id=user.email,
                 )
                 db.add(dish_ingredient)
 

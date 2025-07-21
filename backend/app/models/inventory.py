@@ -6,8 +6,8 @@ class InventoryItem(Base):
     __tablename__ = "inventory"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    ingredient_name = Column(String, nullable=False, unique=True) 
+    user_id = Column(String, nullable=False)  # Changed from Integer to String (email)
+    ingredient_name = Column(String, nullable=False) 
     quantity = Column(String)
     unit = Column(String)
     category = Column(String)
@@ -18,6 +18,6 @@ class InventoryItem(Base):
     dish_ingredients = relationship("DishIngredient", back_populates="ingredient")
 
     __table_args__ = (
-        UniqueConstraint('ingredient_name', name='uq_ingredient_name'),
+        UniqueConstraint('user_id', 'ingredient_name', name='uq_user_ingredient_name'),
     )
 

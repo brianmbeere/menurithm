@@ -1,0 +1,4 @@
+ingredient_name,quantity,unit,category,expiry_date,storage_location
+Tomato,5,kg,Vegetables,2025-08-15,Refrigerator
+Cheese,2,kg,Dairy,2025-08-10,Refrigerator
+Bread,10,loaves,Bakery,2025-07-25,Storage Room

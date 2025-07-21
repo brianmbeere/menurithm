@@ -10,6 +10,7 @@ import deleteInventory from "../api/deleteInventory";
 import uploadInventoryFile from "../api/uploadInventoryFile";
 import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
+import CSVHelpDialog from "./CSVHelpDialog";
 
 const InventoryManager = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -35,6 +36,7 @@ const InventoryManager = () => {
     "Pantry", "Fridge", "Freezer", "Cellar", "Dry Storage"
   ];
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [showCSVHelpDialog, setShowCSVHelpDialog] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
@@ -146,7 +148,7 @@ const InventoryManager = () => {
         {/* Upload Section */}
         <Typography variant="subtitle1" gutterBottom>Upload Inventory CSV</Typography>
         <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid columns={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
               placeholder="Search by name, category, or location"
@@ -155,7 +157,17 @@ const InventoryManager = () => {
               size="small"
             />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid columns={{ xs: 12, sm: 2 }} >
+            <Button
+              variant="outlined"
+              onClick={() => setShowCSVHelpDialog(true)}
+              fullWidth
+              size="small"
+            >
+              CSV Help
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 3 }} >
             <Button
               variant="outlined"
               component="label"
@@ -302,6 +314,13 @@ const InventoryManager = () => {
           rowsPerPageOptions={[10, 25, 50, 100]}
         />
       </CardContent>
+
+      {/* CSV Help Dialog */}
+      <CSVHelpDialog
+        open={showCSVHelpDialog}
+        onClose={() => setShowCSVHelpDialog(false)}
+        uploadType="inventory"
+      />
 
       {/* Snackbar */}
       <Snackbar

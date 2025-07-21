@@ -1,0 +1,5 @@
+dish_name,description,ingredient_name,quantity,unit
+Simple Sandwich,A basic sandwich with cheese,bread,2,loaves
+Simple Sandwich,A basic sandwich with cheese,cheese,0.1,kg
+Tomato Salad,Fresh tomato with cheese,tomato,0.2,kg
+Tomato Salad,Fresh tomato with cheese,cheese,0.05,kg

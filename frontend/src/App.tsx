@@ -7,6 +7,7 @@ import SignUpForm from "./components/SignUpForm";
 import SignInForm from "./components/SignInForm";
 import AccountSettings from "./components/AccountSettings";
 import PageFrame from "./pages/PageFrame";
+import CSVDemoPage from "./components/CSVDemoPage";
 import { theme } from "./branding";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +35,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/csv-demo" element={<CSVDemoPage />} />
            <Route path="/dashboard/*" 
             element={
               <ProtectedRoute>

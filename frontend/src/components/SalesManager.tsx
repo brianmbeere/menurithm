@@ -11,6 +11,7 @@ import { uploadSalesFile } from "../api/uploadSales";
 import { fetchSales, type Sale } from "../api/fetchSales";
 import { updateSale } from "../api/updateSale";
 import { Delete, Edit, UploadFile } from "./SVGIcons";
+import CSVHelpDialog from "./CSVHelpDialog";
 
 const SalesManager = () => {
   const [form, setForm] = useState<SaleInput>({
@@ -22,6 +23,7 @@ const SalesManager = () => {
   const [editSaleId, setEditSaleId] = useState<number | null>(null);
   const [sales, setSales] = useState<Sale[]>([]);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [showCSVHelpDialog, setShowCSVHelpDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -143,6 +145,16 @@ const SalesManager = () => {
 
       <Divider sx={{ my: 4 }} />
       <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+        <Grid columns={{ xs: 12, sm: 3 }} >
+          <Button
+            variant="outlined"
+            onClick={() => setShowCSVHelpDialog(true)}
+            fullWidth
+            size="small"
+          >
+            CSV Help
+          </Button>
+        </Grid>
         <Grid columns={{ xs: 12, sm: 4 }} >
         <Button
           variant="outlined"
@@ -159,7 +171,7 @@ const SalesManager = () => {
           />
         </Button>
         </Grid>
-        <Grid columns={{ xs: 12, sm: 4 }} >
+        <Grid columns={{ xs: 12, sm: 5 }} >
           <Button
             fullWidth
             variant="contained"
@@ -244,6 +256,13 @@ const SalesManager = () => {
           <Button onClick={confirmDelete} color="error" autoFocus>Delete</Button>
         </DialogActions>
       </Dialog>
+
+      {/* CSV Help Dialog */}
+      <CSVHelpDialog
+        open={showCSVHelpDialog}
+        onClose={() => setShowCSVHelpDialog(false)}
+        uploadType="sales"
+      />
     </Paper>
   );
 };

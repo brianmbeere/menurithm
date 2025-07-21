@@ -1,0 +1,26 @@
+ingredient_name,quantity,unit,category,expiry_date,storage_location
+Tomatoes,25,kg,Vegetables,2025-08-15,Refrigerator
+Onions,15,kg,Vegetables,2025-08-20,Storage Room
+Garlic,2,kg,Vegetables,2025-08-25,Storage Room
+Bell Peppers,8,kg,Vegetables,2025-08-10,Refrigerator
+Carrots,12,kg,Vegetables,2025-08-18,Refrigerator
+Potatoes,30,kg,Vegetables,2025-09-01,Storage Room
+Chicken Breast,20,kg,Meat,2025-07-25,Freezer
+Ground Beef,15,kg,Meat,2025-07-28,Freezer
+Salmon Fillets,10,kg,Seafood,2025-07-24,Freezer
+Shrimp,5,kg,Seafood,2025-07-26,Freezer
+Rice,50,kg,Grains,2026-01-15,Pantry
+Pasta,25,kg,Grains,2026-02-10,Pantry
+Flour,20,kg,Baking,2025-12-20,Pantry
+Sugar,15,kg,Baking,2026-03-01,Pantry
+Salt,5,kg,Seasonings,2027-01-01,Pantry
+Black Pepper,1,kg,Seasonings,2026-06-15,Pantry
+Olive Oil,10,L,Oils,2025-11-30,Pantry
+Vegetable Oil,15,L,Oils,2025-12-15,Pantry
+Butter,8,kg,Dairy,2025-08-05,Refrigerator
+Cheese,12,kg,Dairy,2025-08-12,Refrigerator
+Milk,20,L,Dairy,2025-07-30,Refrigerator
+Eggs,200,pieces,Dairy,2025-08-02,Refrigerator
+Bread,30,loaves,Bakery,2025-07-25,Storage Room
+Lettuce,15,heads,Vegetables,2025-07-28,Refrigerator
+Mushrooms,8,kg,Vegetables,2025-07-26,Refrigerator

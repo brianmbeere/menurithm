@@ -27,7 +27,7 @@ def calculate_popularity_scores(db: Session):
 
     return score_map
 
-def generate_menu_smart(db: Session, user_id: int):
+def generate_menu_smart(db: Session, user_id: str):
     menu = []
     inventory = {i.ingredient_name.lower(): i for i in db.query(InventoryItem).filter(InventoryItem.user_id == user_id).all()}
     dishes = db.query(Dish).all()
@@ -39,7 +39,7 @@ def generate_menu_smart(db: Session, user_id: int):
         servings_possible = float('inf')
 
         for ing in dish.ingredients:
-            stock = inventory.get(ing.ingredient.ingredient_name.lower(), ing.ingredient.user_id == user_id) if ing.ingredient else None
+            stock = inventory.get(ing.ingredient.ingredient_name.lower()) if ing.ingredient else None
             if not stock:
                 logger.warning(f"❌ Missing ingredient: {getattr(ing.ingredient, 'ingredient_name', 'Unknown')}")
                 can_make = False

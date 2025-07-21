@@ -19,4 +19,4 @@ def get_generated_menu_smart(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)  # ✅ Inject current user
 ):
-    return {"dishes": generate_menu_smart(db, user.id)}  # ✅ Pass user ID to service
+    return {"dishes": generate_menu_smart(db, user.email)}  # ✅ Pass user ID to service
