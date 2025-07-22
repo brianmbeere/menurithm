@@ -111,8 +111,25 @@ def delete_ingredient(ingredient_name: str, db: Session = Depends(get_db), user:
     if not item:
         raise HTTPException(status_code=404, detail="Ingredient not found")
 
-    db.delete(item)
-    db.commit()
+    # Check if this ingredient is used in any dishes
+    from app.models.dish import DishIngredient
+    dish_count = db.query(DishIngredient).filter(DishIngredient.ingredient_id == item.id).count()
+    
+    if dish_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete ingredient '{item.ingredient_name}' because it is used in {dish_count} dish(es). Please remove it from dishes first."
+        )
+
+    try:
+        db.delete(item)
+        db.commit()
+        logger.info(f"Successfully deleted ingredient {item.ingredient_name} for user {user.email}")
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error deleting ingredient {item.ingredient_name}: {str(e)}")
+        raise HTTPException(status_code=400, detail="Cannot delete ingredient due to database constraints")
+    
     return
 
 

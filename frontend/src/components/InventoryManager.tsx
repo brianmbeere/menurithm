@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   CardContent, Typography, Table, TableHead, TableRow,Autocomplete,
   TableCell, TableBody, TextField, IconButton, Button, Grid,
-  Divider, TablePagination, Tooltip, Snackbar, Alert, Paper, Box
+  Divider, TablePagination, Tooltip, Snackbar, Alert, Paper, Box,
+  Checkbox
 } from "@mui/material";
 import { Delete, Edit, Save, UploadFile, Add } from "./SVGIcons";
 import { updateInventory, type InventoryItem } from "../api/updateInventory";
@@ -41,6 +42,7 @@ const InventoryManager = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchInventory().then(setInventory);
@@ -86,6 +88,47 @@ const InventoryManager = () => {
       showSnackbar("Item deleted", "success");
     } catch {
       showSnackbar("Delete failed", "error");
+    }
+  };
+
+  const handleSelectItem = (itemName: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemName)) {
+      newSelected.delete(itemName);
+    } else {
+      newSelected.add(itemName);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === filtered.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filtered.map(item => item.ingredient_name)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedItems.size} items?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedItems).map(itemName => 
+        deleteInventory(itemName)
+      );
+      await Promise.all(deletePromises);
+      
+      setInventory(prev => 
+        prev.filter(item => !selectedItems.has(item.ingredient_name))
+      );
+      setSelectedItems(new Set());
+      showSnackbar(`Successfully deleted ${selectedItems.size} items`, "success");
+    } catch (err: any) {
+      showSnackbar("Some items failed to delete", "error");
     }
   };
 
@@ -196,11 +239,36 @@ const InventoryManager = () => {
           </Grid>
         </Grid>
 
+        {/* Bulk Actions Section */}
+        {selectedItems.size > 0 && (
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'action.selected', borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              {selectedItems.size} items selected
+            </Typography>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+              onClick={handleBulkDelete}
+              size="small"
+            >
+              Delete Selected
+            </Button>
+          </Box>
+        )}
+
         {/* Table Section */}
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small" sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell>
+                  <Checkbox
+                    indeterminate={selectedItems.size > 0 && selectedItems.size < filtered.length}
+                    checked={filtered.length > 0 && selectedItems.size === filtered.length}
+                    onChange={handleSelectAll}
+                  />
+                </TableCell>
                 <TableCell>#</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Quantity</TableCell>
@@ -214,6 +282,7 @@ const InventoryManager = () => {
             <TableBody>
               {/* Add New Row */}
               <TableRow sx={{ backgroundColor: "#fafafa" }}>
+                  <TableCell></TableCell>
                   <TableCell>New</TableCell>
                   {["ingredient_name", "quantity", "unit", "category", "expiry_date", "storage_location"].map((field) => (
                     <TableCell key={field}>
@@ -255,8 +324,17 @@ const InventoryManager = () => {
                 <TableRow
                   key={item.ingredient_name}
                   hover
-                  sx={{ transition: "background-color 0.3s" }}
+                  sx={{ 
+                    transition: "background-color 0.3s",
+                    backgroundColor: selectedItems.has(item.ingredient_name) ? 'action.selected' : 'inherit'
+                  }}
                 >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedItems.has(item.ingredient_name)}
+                      onChange={() => handleSelectItem(item.ingredient_name)}
+                    />
+                  </TableCell>
                   <TableCell>{page * rowsPerPage + i + 1}</TableCell>
                   {editIndex === i ? (
                     <>

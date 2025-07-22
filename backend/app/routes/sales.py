@@ -33,6 +33,7 @@ async def upload_sales(
     csv_reader = csv.DictReader(StringIO(decoded))
 
     logging.info(f"Processing sales upload for user {user.email}")
+    print(f"🔄 Processing sales upload for user: {user.email}")
     
     # Track results
     added_sales = []
@@ -41,6 +42,8 @@ async def upload_sales(
     row_count = 0
 
     try:
+        valid_sales = []  # Collect valid sales before committing
+        
         for row_num, row in enumerate(csv_reader, 1):
             row_count += 1
             try:
@@ -74,37 +77,59 @@ async def upload_sales(
                     errors.append(error_msg)
                     continue
 
-                sale = Sale(
-                    dish_id=dish.id,
-                    user_id=user.email,
-                    timestamp=timestamp,
-                    quantity_sold=quantity_sold,
-                    price_per_unit=price_per_unit
-                )
-                db.add(sale)
-                db.flush()  # Get the sale ID
-                
-                added_sales.append({
-                    "row": row_num,
-                    "id": sale.id,
+                # Collect valid sale data
+                valid_sales.append({
+                    "row_num": row_num,
+                    "dish": dish,
                     "dish_name": dish_name,
-                    "dish_id": sale.dish_id,
-                    "date": sale.timestamp.strftime("%Y-%m-%d"),
-                    "quantity_sold": sale.quantity_sold,
-                    "price_per_unit": sale.price_per_unit
+                    "timestamp": timestamp,
+                    "quantity_sold": quantity_sold,
+                    "price_per_unit": price_per_unit
                 })
                 
             except Exception as e:
                 error_msg = f"Row {row_num}: Unexpected error - {str(e)}"
                 errors.append(error_msg)
                 logging.error(error_msg)
-                continue
-
+        
+        # Only commit valid sales in a single transaction
+        for sale_data in valid_sales:
+            sale = Sale(
+                dish_id=sale_data["dish"].id,
+                user_id=user.email,
+                timestamp=sale_data["timestamp"],
+                quantity_sold=sale_data["quantity_sold"],
+                price_per_unit=sale_data["price_per_unit"]
+            )
+            db.add(sale)
+            db.flush()  # Get the sale ID
+            
+            added_sales.append({
+                "row": sale_data["row_num"],
+                "id": sale.id,
+                "dish_name": sale_data["dish_name"],
+                "dish_id": sale.dish_id,
+                "date": sale.timestamp.strftime("%Y-%m-%d"),
+                "quantity_sold": sale.quantity_sold,
+                "price_per_unit": sale.price_per_unit
+            })
+        
+        # Commit all valid sales at once
+        if errors:
+            logging.error(f"Sales upload had errors: {errors}")
+            db.rollback()
+            raise HTTPException(status_code=400, detail={
+                "message": "Some rows had errors", 
+                "errors": errors,
+                "added_sales": added_sales,
+                "skipped_sales": skipped_sales
+            })
+        
         db.commit()
         
         # Prepare detailed response
         result = {
-            "status": "success" if added_sales else "partial_success" if not errors else "error",
+            "status": "success" if added_sales else "partial_success",
             "summary": {
                 "total_rows_processed": row_count,
                 "sales_added": len(added_sales),
@@ -115,28 +140,46 @@ async def upload_sales(
                 "added_sales": added_sales,
                 "skipped": skipped_sales,
                 "errors": errors
-            }
+            },
+            "message": f"Successfully added {len(added_sales)} sales, skipped {len(skipped_sales)} with missing dishes"
         }
         
         logging.info(f"Sales upload completed: {result['summary']}")
+        print(f"✅ Sales upload successful: {len(added_sales)} sales added for user {user.email}")
         return result
-        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         error_msg = f"Fatal error during sales upload: {str(e)}"
         logging.error(error_msg)
-        return {
-            "status": "error",
+        print(f"❌ Sales upload failed: {error_msg}")
+        raise HTTPException(status_code=500, detail={
             "message": error_msg,
+            "errors": errors,
             "details": {"errors": errors}
-        }
+        })
 
 @router.get("/sales", response_model=List[SalesRecordOut])
 def get_sales(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    return db.query(Sale).filter(Sale.user_id == user.email).options(joinedload(Sale.dish)).all()
+    print(f"📥 Fetching sales for user: {user.email}")
+    
+    # Filter out sales with NULL dish_id to prevent validation errors
+    sales = db.query(Sale).filter(
+        Sale.user_id == user.email,
+        Sale.dish_id.isnot(None)
+    ).options(joinedload(Sale.dish)).all()
+    
+    print(f"📊 Found {len(sales)} sales for user {user.email}")
+    
+    # Additional safety check - filter out any sales with NULL dish relationships
+    valid_sales = [sale for sale in sales if sale.dish is not None]
+    
+    print(f"✅ Returning {len(valid_sales)} valid sales")
+    return valid_sales
 
 @router.post("/sales", status_code=201)
 def add_sale(

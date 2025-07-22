@@ -3,7 +3,7 @@ import {
   Box, Paper, Typography, Grid, TextField, Button, Divider,
   Table, TableHead, TableRow, TableCell, TableBody, TablePagination,
   IconButton, Snackbar, Alert, Tooltip, Dialog, DialogTitle, DialogContent,
-  DialogContentText, DialogActions
+  DialogContentText, DialogActions, Checkbox
 } from "@mui/material";
 import { type SaleInput, addSale } from "../api/addSales";
 import { deleteSale } from "../api/deleteSale";
@@ -30,6 +30,7 @@ const SalesManager = () => {
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState<number | null>(null);
+  const [selectedSales, setSelectedSales] = useState<Set<number>>(new Set());
 
   useEffect(() => { fetchSales().then(setSales).catch(console.error); }, []);
   const refreshSales = () => fetchSales().then(setSales);
@@ -57,11 +58,18 @@ const SalesManager = () => {
     if (!csvFile) return;
     setUploading(true);
     try {
-      await uploadSalesFile(csvFile);
+      console.log('🔄 Starting sales CSV upload...', csvFile.name);
+      const uploadResult = await uploadSalesFile(csvFile);
+      console.log('📤 Sales upload result:', uploadResult);
+      
       showSnackbar("CSV uploaded!", "success");
       setCsvFile(null);
-      refreshSales();
+      
+      console.log('🔄 Refreshing sales data...');
+      await refreshSales();
+      console.log('✅ Sales data refreshed');
     } catch (err: any) {
+      console.error('❌ Sales upload error:', err);
       showSnackbar(err.message, "error");
     } finally {
       setUploading(false);
@@ -94,6 +102,45 @@ const SalesManager = () => {
     } finally {
       setDeleteDialogOpen(false);
       setSaleToDelete(null);
+    }
+  };
+
+  const handleSelectSale = (saleId: number) => {
+    const newSelected = new Set(selectedSales);
+    if (newSelected.has(saleId)) {
+      newSelected.delete(saleId);
+    } else {
+      newSelected.add(saleId);
+    }
+    setSelectedSales(newSelected);
+  };
+
+  const handleSelectAllSales = () => {
+    if (selectedSales.size === paginatedSales.length) {
+      setSelectedSales(new Set());
+    } else {
+      setSelectedSales(new Set(paginatedSales.map(sale => sale.id)));
+    }
+  };
+
+  const handleBulkDeleteSales = async () => {
+    if (selectedSales.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedSales.size} sales?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedSales).map(saleId => 
+        deleteSale(saleId)
+      );
+      await Promise.all(deletePromises);
+      
+      setSales(prev => prev.filter(sale => !selectedSales.has(sale.id)));
+      setSelectedSales(new Set());
+      showSnackbar(`Successfully deleted ${selectedSales.size} sales`, "success");
+    } catch (err: any) {
+      showSnackbar("Some sales failed to delete", "error");
     }
   };
 
@@ -189,10 +236,35 @@ const SalesManager = () => {
       <Typography variant="h6" gutterBottom>
         Recent Sales
       </Typography>
+      
+      {selectedSales.size > 0 && (
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'action.selected', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {selectedSales.size} sale{selectedSales.size > 1 ? 's' : ''} selected
+          </Typography>
+          <Button 
+            variant="outlined" 
+            color="error" 
+            size="small"
+            onClick={handleBulkDeleteSales}
+            startIcon={<Delete />}
+          >
+            Delete Selected
+          </Button>
+        </Box>
+      )}
+      
       <Box sx={{ overflowX: "auto" }}>
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={selectedSales.size === paginatedSales.length && paginatedSales.length > 0}
+                  indeterminate={selectedSales.size > 0 && selectedSales.size < paginatedSales.length}
+                  onChange={handleSelectAllSales}
+                />
+              </TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Dish</TableCell>
               <TableCell>Quantity</TableCell>
@@ -202,7 +274,16 @@ const SalesManager = () => {
           </TableHead>
           <TableBody>
             {paginatedSales.map((s) => (
-              <TableRow key={s.id}>
+              <TableRow 
+                key={s.id}
+                style={{ backgroundColor: selectedSales.has(s.id) ? 'rgba(25, 118, 210, 0.08)' : 'transparent' }}
+              >
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedSales.has(s.id)}
+                    onChange={() => handleSelectSale(s.id)}
+                  />
+                </TableCell>
                 <TableCell>{s.timestamp.slice(0, 10)}</TableCell>
                 <TableCell>{s.dish.name}</TableCell>
                 <TableCell>{s.quantity_sold}</TableCell>

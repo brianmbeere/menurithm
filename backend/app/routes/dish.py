@@ -135,6 +135,10 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
     csv_reader = csv.DictReader(StringIO(decoded))
     db = SessionLocal()
 
+    added_dishes = []
+    skipped_dishes = []
+    errors = []
+
     try:
         # Group rows by dish
         dishes = defaultdict(list)
@@ -142,49 +146,85 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
             dish_name = row["dish_name"].strip()
             dishes[dish_name].append(row)
 
+        print(f"Processing {len(dishes)} dishes for user {user.email}")
+
         for dish_name, rows in dishes.items():
-            description = rows[0].get("description", "").strip() or None
+            try:
+                description = rows[0].get("description", "").strip() or None
 
-            # Check if dish already exists
-            existing_dish = db.query(Dish).filter(
-                Dish.name.ilike(dish_name),
-                Dish.user_id == user.email
-            ).first()
-            if existing_dish:
-                continue  # Skip duplicates
-
-            new_dish = Dish(
-                name=dish_name,
-                description=description,
-                user_id=user.email,
-            )
-            db.add(new_dish)
-            db.flush()  # Get new_dish.id
-
-            for row in rows:
-                ingredient_name = row["ingredient_name"].strip().lower()
-
-                inventory_item = db.query(InventoryItem).filter(
-                    InventoryItem.ingredient_name.ilike(ingredient_name),
-                    InventoryItem.user_id == user.email
+                # Check if dish already exists
+                existing_dish = db.query(Dish).filter(
+                    Dish.name.ilike(dish_name),
+                    Dish.user_id == user.email
                 ).first()
+                if existing_dish:
+                    skipped_dishes.append(f"Dish '{dish_name}' already exists")
+                    continue
 
-                if not inventory_item:
-                    raise HTTPException(status_code=400, detail=f"Ingredient '{ingredient_name}' not found in inventory")
-               
-                dish_ingredient = DishIngredient(
-                    dish_id=new_dish.id,
-                    ingredient_id=inventory_item.id,
-                    quantity=float(row["quantity"]),
-                    unit=row["unit"].strip(),
+                new_dish = Dish(
+                    name=dish_name,
+                    description=description,
                     user_id=user.email,
                 )
-                db.add(dish_ingredient)
+                db.add(new_dish)
+                db.flush()  # Get new_dish.id
 
+                dish_ingredients = []
+                for row in rows:
+                    ingredient_name = row["ingredient_name"].strip()
+
+                    inventory_item = db.query(InventoryItem).filter(
+                        InventoryItem.ingredient_name.ilike(ingredient_name),
+                        InventoryItem.user_id == user.email
+                    ).first()
+
+                    if not inventory_item:
+                        errors.append(f"Ingredient '{ingredient_name}' not found in inventory for dish '{dish_name}'")
+                        continue
+                   
+                    dish_ingredient = DishIngredient(
+                        dish_id=new_dish.id,
+                        ingredient_id=inventory_item.id,
+                        quantity=float(row["quantity"]),
+                        unit=row["unit"].strip(),
+                        user_id=user.email,
+                    )
+                    db.add(dish_ingredient)
+                    dish_ingredients.append(dish_ingredient)
+
+                if dish_ingredients:
+                    added_dishes.append({
+                        "name": dish_name,
+                        "ingredients_count": len(dish_ingredients)
+                    })
+                    print(f"Added dish: {dish_name} with {len(dish_ingredients)} ingredients")
+                else:
+                    errors.append(f"No valid ingredients found for dish '{dish_name}', skipping")
+                    db.delete(new_dish)
+
+            except Exception as e:
+                errors.append(f"Error processing dish '{dish_name}': {str(e)}")
+                continue
+
+        if errors:
+            print(f"Errors encountered: {errors}")
+            db.rollback()
+            raise HTTPException(status_code=400, detail={"errors": errors, "added_dishes": added_dishes, "skipped_dishes": skipped_dishes})
+        
         db.commit()
-        return {"status": "success"}
+        print(f"Successfully added {len(added_dishes)} dishes")
+        return {
+            "status": "success",
+            "added_dishes": added_dishes,
+            "skipped_dishes": skipped_dishes,
+            "summary": f"Added {len(added_dishes)} dishes, skipped {len(skipped_dishes)} duplicates"
+        }
+    
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        return {"status": "error", "message": str(e)}
+        print(f"Fatal error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
     finally:
         db.close()

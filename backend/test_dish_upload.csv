@@ -1,0 +1,4 @@
+dish_name,description,ingredient_name,quantity,unit
+Test Pasta Dish,A simple pasta dish,rice,1,kg
+Test Pasta Dish,A simple pasta dish,tomatoes,0.5,kg
+Test Pasta Dish,A simple pasta dish,olive oil,0.1,liters

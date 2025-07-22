@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
-  Card, CardContent, Typography, Table, TableHead, TableRow,
-  TableCell, TableBody, TextField, IconButton, Button, Grid, Divider, Collapse, Box, Autocomplete,
-  Snackbar, Alert, Stack
+  Box, Typography, Button,
+  TextField, Grid, Table, TableHead, TableRow, TableCell,
+  TableBody, TablePagination, IconButton, Divider, Checkbox, Card, CardContent, Autocomplete, Collapse, Stack,
+  Snackbar, Alert
 } from "@mui/material";
 import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
 import { type DishOutput, type DishInput, createDish } from "../api/createDish";
@@ -48,6 +49,7 @@ const IngredientInputs = ({
 
 const DishManager = () => {
   const [dishes, setDishes] = useState<DishOutput[]>([]);
+  const [selectedDishes, setSelectedDishes] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
   const [dishForm, setDishForm] = useState<DishInput>({
@@ -60,6 +62,8 @@ const DishManager = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [showCSVHelpDialog, setShowCSVHelpDialog] = useState(false);
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     fetchDishes().then(setDishes);
@@ -71,6 +75,18 @@ const DishManager = () => {
       })));
     });
   }, []);
+
+  // Memoized filtered and paginated dishes for better performance
+  const filteredDishes = useMemo(() => {
+    return dishes.filter((dish) => 
+      dish.name.toLowerCase().includes(search.toLowerCase()) ||
+      (dish.description && dish.description.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [dishes, search]);
+
+  const paginatedDishes = useMemo(() => {
+    return filteredDishes.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filteredDishes, page, rowsPerPage]);
 
   const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
 
@@ -167,13 +183,60 @@ const DishManager = () => {
   const handleCSVUploadDish = async () => {
    if (!csvFile) return;
     try {
-      await uploadDishesFile(csvFile);
+      console.log('🔄 Starting CSV upload...', csvFile.name);
+      const uploadResult = await uploadDishesFile(csvFile);
+      console.log('📤 Upload result:', uploadResult);
+      
       setCsvFile(null);
+      
+      console.log('🔄 Fetching updated dishes...');
       const updated = await fetchDishes();
+      console.log('📥 Fetched dishes:', updated.length, 'dishes');
+      
       setDishes(updated);
       showSnackbar("CSV uploaded successfully!", "success");
     } catch (err: any) {
+      console.error('❌ Upload error:', err);
       showSnackbar(err.message, "error");
+    }
+  };
+
+  const handleSelectDish = (dishId: number) => {
+    const newSelected = new Set(selectedDishes);
+    if (newSelected.has(dishId)) {
+      newSelected.delete(dishId);
+    } else {
+      newSelected.add(dishId);
+    }
+    setSelectedDishes(newSelected);
+  };
+
+  const handleSelectAllDishes = () => {
+    if (selectedDishes.size === paginatedDishes.length) {
+      setSelectedDishes(new Set());
+    } else {
+      setSelectedDishes(new Set(paginatedDishes.map(dish => dish.id)));
+    }
+  };
+
+  const handleBulkDeleteDishes = async () => {
+    if (selectedDishes.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedDishes.size} dishes?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedDishes).map(dishId => 
+        deleteDish(dishId)
+      );
+      await Promise.all(deletePromises);
+      
+      setDishes(prev => prev.filter(dish => !selectedDishes.has(dish.id)));
+      setSelectedDishes(new Set());
+      showSnackbar(`Successfully deleted ${selectedDishes.size} dishes`, "success");
+    } catch (err: any) {
+      showSnackbar("Some dishes failed to delete", "error");
     }
   };
 
@@ -193,9 +256,12 @@ const DishManager = () => {
           <Grid columns={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
-              placeholder="Search by name, category, or location"
+              placeholder="Search by name or description"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0); // Reset to first page when searching
+              }}
               size="small"
             />
           </Grid>
@@ -285,10 +351,34 @@ const DishManager = () => {
           Dishes
         </Typography>
 
+        {selectedDishes.size > 0 && (
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'action.selected', borderRadius: 1 }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              {selectedDishes.size} dish{selectedDishes.size > 1 ? 'es' : ''} selected
+            </Typography>
+            <Button 
+              variant="outlined" 
+              color="error" 
+              size="small"
+              onClick={handleBulkDeleteDishes}
+              startIcon={<Delete />}
+            >
+              Delete Selected
+            </Button>
+          </Box>
+        )}
+
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedDishes.size === paginatedDishes.length && paginatedDishes.length > 0}
+                    indeterminate={selectedDishes.size > 0 && selectedDishes.size < paginatedDishes.length}
+                    onChange={handleSelectAllDishes}
+                  />
+                </TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Ingredients</TableCell>
@@ -296,8 +386,17 @@ const DishManager = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {dishes.map((dish) => (
-                <TableRow key={dish.id}>
+              {paginatedDishes.map((dish) => (
+                <TableRow 
+                  key={dish.id}
+                  style={{ backgroundColor: selectedDishes.has(dish.id) ? 'rgba(25, 118, 210, 0.08)' : 'transparent' }}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedDishes.has(dish.id)}
+                      onChange={() => handleSelectDish(dish.id)}
+                    />
+                  </TableCell>
                   <TableCell>{dish.name}</TableCell>
                   <TableCell>{dish.description}</TableCell>
                   <TableCell>
@@ -316,6 +415,18 @@ const DishManager = () => {
             </TableBody>
           </Table>
         </Box>
+
+        <TablePagination
+          component="div"
+          count={filteredDishes.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+        />
 
         <Snackbar
           open={!!snackbar}

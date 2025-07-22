@@ -11,10 +11,15 @@ const uploadDishesFile = async (file: File) => {
     body: formData,
   });
 
-  if (!res.ok) throw new Error("Failed to upload dishes CSV");
-
   const data = await res.json(); 
-  console.log(data)
+  console.log('Upload response:', res.status, data);
+
+  if (!res.ok) {
+    const errorMessage = data.detail?.errors ? 
+      `Upload failed: ${data.detail.errors.join(', ')}` : 
+      `Failed to upload dishes CSV: ${data.message || 'Unknown error'}`;
+    throw new Error(errorMessage);
+  }
 
   return data;
 };
