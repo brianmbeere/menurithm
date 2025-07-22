@@ -12,6 +12,7 @@ import { fetchSales, type Sale } from "../api/fetchSales";
 import { updateSale } from "../api/updateSale";
 import { Delete, Edit, UploadFile } from "./SVGIcons";
 import CSVHelpDialog from "./CSVHelpDialog";
+import { formatDate } from "../utils";
 
 const SalesManager = () => {
   const [form, setForm] = useState<SaleInput>({
@@ -284,7 +285,7 @@ const SalesManager = () => {
                     onChange={() => handleSelectSale(s.id)}
                   />
                 </TableCell>
-                <TableCell>{s.timestamp.slice(0, 10)}</TableCell>
+                <TableCell>{formatDate(s.timestamp)}</TableCell>
                 <TableCell>{s.dish.name}</TableCell>
                 <TableCell>{s.quantity_sold}</TableCell>
                 <TableCell>${s.price_per_unit.toFixed(2)}</TableCell>

@@ -12,6 +12,7 @@ import uploadInventoryFile from "../api/uploadInventoryFile";
 import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
 import CSVHelpDialog from "./CSVHelpDialog";
+import { formatDate } from "../utils";
 
 const InventoryManager = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -362,7 +363,7 @@ const InventoryManager = () => {
                       <TableCell>{item.quantity}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.category}</TableCell>
-                      <TableCell>{item.expiry_date}</TableCell>
+                      <TableCell>{formatDate(item.expiry_date)}</TableCell>
                       <TableCell>{item.storage_location}</TableCell>
                       <TableCell>
                         <Tooltip title="Edit">

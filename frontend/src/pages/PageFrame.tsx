@@ -124,17 +124,17 @@ const PageFrame = () => {
                   </CardContent>
                 </Card>
               )}
-              {activeTab === 2 && (
+                 {activeTab === 2 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
-                    <SalesManager />
+                    <DishManager />
                   </CardContent>
                 </Card>
               )}
               {activeTab === 3 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
-                    <DishManager />
+                    <SalesManager />
                   </CardContent>
                 </Card>
               )}
