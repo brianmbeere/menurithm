@@ -7,8 +7,9 @@ class DishIngredientOut(BaseModel):
     quantity: float
     unit: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class DishOut(BaseModel):
     id: int
@@ -16,8 +17,9 @@ class DishOut(BaseModel):
     description: Optional[str]
     ingredients: List[DishIngredientOut]
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class DishIngredientIn(BaseModel):
     ingredient_id: int

@@ -10,8 +10,9 @@ class InventoryItemOut(BaseModel):
     expiry_date: date
     storage_location: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class InventoryItemIn(BaseModel):
     ingredient_name: str

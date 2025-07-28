@@ -5,8 +5,9 @@ class DishOut(BaseModel):
     id: int
     name: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class SalesRecordIn(BaseModel):
     dish_name: str
@@ -21,5 +22,6 @@ class SalesRecordOut(BaseModel):
     quantity_sold: int
     price_per_unit: float
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

@@ -16,12 +16,31 @@ setup:
 # Start backend server with auto-reload
 run:
 	@echo "Starting FastAPI backend..."
+	@echo ""
+	@echo "🚀 Starting Menurithm Backend Server..."
+	@echo "📍 Main API: http://127.0.0.1:8000"
+	@echo "📚 API Docs: http://127.0.0.1:8000/docs"
+	@echo "📖 ReDoc: http://127.0.0.1:8000/redoc"
+	@echo "⚡ Auto-reload enabled"
+	@echo ""
 	$(UVICORN) $(APP_MODULE) --reload
 
 # Start backend server in production mode (for Render)
 start:
-	@echo "Starting FastAPI backend in production mode..."
+	@echo "🚀 Starting FastAPI backend in production mode..."
+	@echo "📍 Main API: http://0.0.0.0:$${PORT:-8000}"
+	@echo "📚 API Docs: http://0.0.0.0:$${PORT:-8000}/docs"
+	@echo "📖 ReDoc: http://0.0.0.0:$${PORT:-8000}/redoc"
+	@echo ""
 	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port $${PORT:-8000}
+
+# Show server URLs
+urls:
+	@echo "🌐 Menurithm Backend URLs:"
+	@echo "📍 Main API: http://127.0.0.1:8000"
+	@echo "📚 API Docs (Swagger): http://127.0.0.1:8000/docs"
+	@echo "📖 API Docs (ReDoc): http://127.0.0.1:8000/redoc"
+	@echo "💾 Health Check: http://127.0.0.1:8000/health"
 
 # Format code using black
 format:
