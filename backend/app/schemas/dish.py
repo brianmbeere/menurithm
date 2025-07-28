@@ -31,3 +31,15 @@ class DishIn(BaseModel):
     description: Optional[str]
     ingredients: List[DishIngredientIn]
 
+class DishServiceIn(BaseModel):
+    """Service-to-service dish creation schema"""
+    name: str
+    description: Optional[str]
+    ingredients: List[DishIngredientIn]
+    user_email: Optional[str] = None  # Optional target user
+
+class DishBatchServiceIn(BaseModel):
+    """Service-to-service batch dish creation schema"""
+    dishes: List[DishIn]
+    user_email: Optional[str] = None  # Optional target user for all dishes
+

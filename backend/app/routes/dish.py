@@ -2,15 +2,16 @@ from collections import defaultdict
 import csv
 from datetime import datetime
 from io import StringIO
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Header
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.dish import Dish, DishIngredient
 from app.models.inventory import InventoryItem
-from app.schemas.dish import DishIn, DishOut
+from app.schemas.dish import DishIn, DishOut, DishServiceIn, DishBatchServiceIn
 from app.models.user import User
 from app.utils.auth import get_current_user
-from typing import List
+from app.utils.auth_enhanced import verify_api_key
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -63,6 +64,135 @@ def create_dish(
         ing.ingredient_name = ing.ingredient.ingredient_name if ing.ingredient else None
 
     return dish
+
+# ==================== SERVICE-TO-SERVICE ENDPOINTS ====================
+
+@router.post("/service/dishes", response_model=DishOut)
+def create_dish_service(
+    dish_request: DishServiceIn,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)  # Service authentication
+):
+    """
+    Service-to-service dish creation endpoint
+    Bypasses user authentication and allows creating dishes for any user
+    Requires valid API key for authentication
+    """
+    # Default to system user if no user_email provided
+    target_user_email = dish_request.user_email or "system@menurithm.com"
+    
+    # Check if dish already exists for this user
+    existing = db.query(Dish).filter(
+        Dish.name == dish_request.name,
+        Dish.user_id == target_user_email
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Dish '{dish_request.name}' already exists for user {target_user_email}"
+        )
+
+    # Create the dish
+    dish = Dish(
+        name=dish_request.name,
+        description=dish_request.description,
+        user_id=target_user_email
+    )
+
+    # Add ingredients (validate they exist but don't enforce user ownership for service calls)
+    for ing in dish_request.ingredients:
+        inventory_item = db.query(InventoryItem).filter(
+            InventoryItem.id == ing.ingredient_id
+        ).first()
+        if not inventory_item:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ingredient with id {ing.ingredient_id} not found"
+            )
+
+        dish.ingredients.append(DishIngredient(
+            ingredient_id=ing.ingredient_id,
+            quantity=ing.quantity,
+            unit=ing.unit,
+            user_id=target_user_email,
+        ))
+
+    db.add(dish)
+    db.commit()
+    db.refresh(dish)
+
+    # Add ingredient names for response
+    for ing in dish.ingredients:
+        ing.ingredient_name = ing.ingredient.ingredient_name if ing.ingredient else None
+
+    return dish
+
+@router.post("/service/dishes/batch", response_model=List[DishOut])
+def create_dishes_batch_service(
+    batch_request: DishBatchServiceIn,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Service-to-service batch dish creation endpoint
+    Creates multiple dishes in a single transaction
+    """
+    target_user_email = batch_request.user_email or "system@menurithm.com"
+    created_dishes = []
+    
+    try:
+        for dish_in in batch_request.dishes:
+            # Check if dish already exists
+            existing = db.query(Dish).filter(
+                Dish.name == dish_in.name,
+                Dish.user_id == target_user_email
+            ).first()
+            if existing:
+                continue  # Skip existing dishes instead of failing
+                
+            # Create dish
+            dish = Dish(
+                name=dish_in.name,
+                description=dish_in.description,
+                user_id=target_user_email
+            )
+            
+            # Add ingredients
+            for ing in dish_in.ingredients:
+                inventory_item = db.query(InventoryItem).filter(
+                    InventoryItem.id == ing.ingredient_id
+                ).first()
+                if not inventory_item:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Ingredient with id {ing.ingredient_id} not found for dish '{dish_in.name}'"
+                    )
+                    
+                dish.ingredients.append(DishIngredient(
+                    ingredient_id=ing.ingredient_id,
+                    quantity=ing.quantity,
+                    unit=ing.unit,
+                    user_id=target_user_email,
+                ))
+            
+            db.add(dish)
+            created_dishes.append(dish)
+        
+        db.commit()
+        
+        # Refresh all dishes and add ingredient names
+        for dish in created_dishes:
+            db.refresh(dish)
+            for ing in dish.ingredients:
+                ing.ingredient_name = ing.ingredient.ingredient_name if ing.ingredient else None
+                
+        return created_dishes
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ==================== REGULAR USER ENDPOINTS ====================
 
 @router.get("/dishes", response_model=List[DishOut])
 def get_dishes(
