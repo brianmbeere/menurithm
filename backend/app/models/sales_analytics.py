@@ -62,3 +62,28 @@ class DemandPattern(Base):
     last_updated = Column(DateTime, default=datetime.utcnow)
     
     dish = relationship("Dish")
+
+class SalesPattern(Base):
+    """Store AI-identified sales patterns"""
+    __tablename__ = "sales_patterns"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    pattern_type = Column(String, nullable=False)  # 'ai_analysis', 'seasonal', 'trending'
+    pattern_data = Column(String)  # JSON string of pattern details
+    confidence_score = Column(Float, nullable=False)
+    identified_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+
+class DemandForecast(Base):
+    """Store AI-generated demand forecasts"""
+    __tablename__ = "demand_forecasts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    item_name = Column(String)  # Optional: specific item forecast
+    forecast_period = Column(String, nullable=False)  # '7_days', '30_days', etc.
+    predicted_data = Column(String)  # JSON string of predictions
+    accuracy_score = Column(Float)  # Historical accuracy (0-1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from app.routes import user, menu, inventory, sales, dish, csv_help, csv_validation, advanced_inventory, test_auth
+from app.routes import user, menu, inventory, sales, dish, csv_help, csv_validation, advanced_inventory, advanced_inventory_ai, test_auth, auth_examples
 from app.db.database import Base, engine
 from app.core.config import setup_cors
 from app.utils.auth_config import get_auth_config
@@ -46,9 +46,11 @@ app.include_router(csv_validation.router, prefix="/csv", tags=["CSV Validation"]
 
 # Enhanced inventory management with AI
 app.include_router(advanced_inventory.router, tags=["Advanced AI Inventory"])
+app.include_router(advanced_inventory_ai.router, tags=["AI-Powered Inventory"])
 
 # Test and demo routes for non-user access
 app.include_router(test_auth.router, tags=["Test & Authentication Demo"])
+app.include_router(auth_examples.router, tags=["Authentication Examples"])
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

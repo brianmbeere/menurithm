@@ -13,7 +13,7 @@ from app.utils.auth import get_current_user
 from app.utils.auth_enhanced import verify_api_key
 from typing import List, Optional
 
-router = APIRouter()
+router = APIRouter(tags=["Dishes"])
 
 def get_db():
     db = SessionLocal()
@@ -67,7 +67,7 @@ def create_dish(
 
 # ==================== SERVICE-TO-SERVICE ENDPOINTS ====================
 
-@router.post("/service/dishes", response_model=DishOut)
+@router.post("/service/dishes", response_model=DishOut, tags=["Service-to-Service"])
 def create_dish_service(
     dish_request: DishServiceIn,
     db: Session = Depends(get_db),
@@ -127,7 +127,7 @@ def create_dish_service(
 
     return dish
 
-@router.post("/service/dishes/batch", response_model=List[DishOut])
+@router.post("/service/dishes/batch", response_model=List[DishOut], tags=["Service-to-Service"])
 def create_dishes_batch_service(
     batch_request: DishBatchServiceIn,
     db: Session = Depends(get_db),

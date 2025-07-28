@@ -14,9 +14,11 @@ import { useNavigate } from "react-router-dom";
 
 import InventoryManager from "../components/InventoryManager";
 import MenuManager from "../components/MenuManager";
-import SalesManager from "../components/SalesManager";
 import DishManager from "../components/DishManager";
+import SalesManager from "../components/SalesManager";
 import Dashboard from "../components/Dashboard";
+import AIAnalyticsDashboard from "../components/AIAnalyticsDashboard";
+import ServiceIntegrationPanel from "../components/ServiceIntegrationPanel";
 import DashboardNavigation from "../components/DashboardNavigation";
 import DashboardAppBar from "../components/DashboardAppBar";
 
@@ -26,10 +28,12 @@ const collapsedDrawerWidth = 64;
 
 const tabRoutes = [
   { title: "Dashboard", path: "/dashboard" },
+  { title: "AI Analytics", path: "/dashboard/ai-analytics" },
   { title: "Inventory", path: "/dashboard/inventory" },
   { title: "Sales", path: "/dashboard/sales" },
   { title: "Dishes", path: "/dashboard/dishes" },
   { title: "Menu Generator", path: "/dashboard/menu" },
+  { title: "Service Integration", path: "/dashboard/service-integration" },
 ];
 
 const PageFrame = () => {
@@ -120,28 +124,42 @@ const PageFrame = () => {
               {activeTab === 1 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
+                    <AIAnalyticsDashboard />
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === 2 && (
+                <Card elevation={3} sx={{ mb: 3 }}>
+                  <CardContent>
                     <InventoryManager />
                   </CardContent>
                 </Card>
               )}
-                 {activeTab === 2 && (
+                 {activeTab === 3 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
                     <DishManager />
                   </CardContent>
                 </Card>
               )}
-              {activeTab === 3 && (
+              {activeTab === 4 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
                     <SalesManager />
                   </CardContent>
                 </Card>
               )}
-              {activeTab === 4 && (
+              {activeTab === 5 && (
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent>
                     <MenuManager />
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === 6 && (
+                <Card elevation={3} sx={{ mb: 3 }}>
+                  <CardContent>
+                    <ServiceIntegrationPanel />
                   </CardContent>
                 </Card>
               )}

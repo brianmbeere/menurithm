@@ -20,8 +20,8 @@ class DemandPredictionService:
         """Lazy initialization of OpenAI client"""
         if self._openai_client is None:
             api_key = os.getenv("OPENAI_API_KEY")
-            if not api_key:
-                raise ValueError("OPENAI_API_KEY environment variable is not set")
+            if not api_key or api_key.startswith("your_openai"):
+                raise ValueError("OPENAI_API_KEY environment variable is not properly configured")
             self._openai_client = OpenAI(api_key=api_key)
         return self._openai_client
         
@@ -33,8 +33,8 @@ class DemandPredictionService:
         
         sales_data = db.query(Sale).filter(
             Sale.user_id == user_id,
-            Sale.sale_date >= start_date,
-            Sale.sale_date <= end_date
+            Sale.timestamp >= start_date,
+            Sale.timestamp <= end_date
         ).all()
         
         if not sales_data:
@@ -54,12 +54,12 @@ class DemandPredictionService:
     def _prepare_sales_data(self, sales_data: List[Sale]) -> str:
         """Convert sales data to format suitable for AI analysis"""
         df = pd.DataFrame([{
-            'date': sale.sale_date.strftime('%Y-%m-%d'),
-            'day_of_week': sale.sale_date.strftime('%A'),
-            'dish_name': sale.dish_name,
+            'date': sale.timestamp.strftime('%Y-%m-%d'),
+            'day_of_week': sale.timestamp.strftime('%A'),
+            'dish_name': getattr(sale.dish, 'name', f'Dish_{sale.dish_id}') if sale.dish else f'Dish_{sale.dish_id}',
             'quantity_sold': sale.quantity_sold,
-            'total_revenue': sale.total_revenue,
-            'hour': sale.sale_date.hour if hasattr(sale.sale_date, 'hour') else 12
+            'total_revenue': sale.quantity_sold * sale.price_per_unit,
+            'hour': sale.timestamp.hour if hasattr(sale.timestamp, 'hour') else 12
         } for sale in sales_data])
         
         # Create summary statistics
@@ -95,6 +95,11 @@ class DemandPredictionService:
         """
         
         try:
+            # Check if OpenAI is available before making the request
+            if not hasattr(self, '_openai_client') or self._openai_client is None:
+                # Try to initialize to check if API key is valid
+                _ = self.openai_client
+                
             response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[
@@ -115,27 +120,37 @@ class DemandPredictionService:
         except ValueError as e:
             # OpenAI API key not configured - provide enhanced fallback
             return {
-                "identified_patterns": ["Unable to access AI analysis - API key not configured"],
-                "demand_trends": ["Basic analytics available - configure OpenAI API for enhanced insights"],
-                "peak_times": ["Standard restaurant hours analysis"],
-                "recommendations": ["Configure OPENAI_API_KEY environment variable for AI-powered recommendations"],
-                "predicted_growth": ["Manual analysis required"],
-                "risk_factors": ["AI analysis unavailable"],
-                "optimal_inventory_levels": ["Use basic inventory tracking"],
+                "identified_patterns": ["Demo Mode: Basic patterns detected"],
+                "demand_trends": ["Demo Mode: Configure OpenAI API for enhanced insights"],
+                "peak_times": ["Standard restaurant hours: 12:00-14:00, 18:00-21:00"],
+                "recommendations": [
+                    "Monitor inventory levels daily",
+                    "Track best-selling items",
+                    "Configure OPENAI_API_KEY for AI-powered recommendations"
+                ],
+                "predicted_growth": {"next_30_days": "stable", "confidence": "demo"},
+                "risk_factors": ["AI analysis unavailable in demo mode"],
+                "optimal_inventory_levels": {"general": "2-3 days supply for popular items"},
                 "ai_available": False,
-                "error": "OpenAI API key not configured"
+                "demo_mode": True,
+                "note": "This is demo data. Configure OpenAI API key for real AI analysis."
             }
         except Exception as e:
             # Other errors - provide basic fallback analysis
             return {
                 "identified_patterns": ["Basic daily sales cycle"],
                 "demand_trends": ["Stable sales pattern"],
-                "peak_times": ["Lunch and dinner hours"],
-                "recommendations": ["Monitor inventory levels daily"],
+                "peak_times": ["Lunch: 12:00-14:00, Dinner: 18:00-21:00"],
+                "recommendations": [
+                    "Monitor inventory levels daily",
+                    "Review sales data weekly",
+                    "Track seasonal patterns"
+                ],
                 "predicted_growth": {"next_30_days": "stable"},
-                "risk_factors": ["Seasonal variations"],
+                "risk_factors": ["Seasonal variations", "Weekend fluctuations"],
                 "optimal_inventory_levels": {"general": "2-3 days supply"},
-                "error": f"AI analysis failed: {str(e)}"
+                "error": f"Analysis failed: {str(e)}",
+                "demo_mode": True
             }
     
     async def _store_patterns(self, db: Session, user_id: str, analysis: Dict[str, Any]):
@@ -174,20 +189,24 @@ class DemandPredictionService:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=30)  # Last 30 days
         
-        item_sales = db.query(Sale).filter(
+        # Get all sales for user and filter by dish name after loading
+        all_sales = db.query(Sale).filter(
             Sale.user_id == user_id,
-            Sale.dish_name == item_name,
-            Sale.sale_date >= start_date
+            Sale.timestamp >= start_date
         ).all()
+        
+        # Filter by dish name 
+        item_sales = [sale for sale in all_sales 
+                     if sale.dish and getattr(sale.dish, 'name', '') == item_name]
         
         if not item_sales:
             return {"error": f"No sales data found for {item_name}"}
         
         # Prepare item-specific data
         item_data = pd.DataFrame([{
-            'date': sale.sale_date.strftime('%Y-%m-%d'),
+            'date': sale.timestamp.strftime('%Y-%m-%d'),
             'quantity_sold': sale.quantity_sold,
-            'revenue': sale.total_revenue
+            'revenue': sale.quantity_sold * sale.price_per_unit
         } for sale in item_sales])
         
         daily_sales = item_data.groupby('date')['quantity_sold'].sum()
@@ -266,7 +285,7 @@ class DemandPredictionService:
         # Get recent sales data
         recent_sales = db.query(Sale).filter(
             Sale.user_id == user_id,
-            Sale.sale_date >= datetime.now() - timedelta(days=14)
+            Sale.timestamp >= datetime.now() - timedelta(days=14)
         ).all()
         
         # Prepare data for AI
@@ -302,6 +321,11 @@ class DemandPredictionService:
         """
         
         try:
+            # Check if OpenAI is available before making the request
+            if not hasattr(self, '_openai_client') or self._openai_client is None:
+                # Try to initialize to check if API key is valid
+                _ = self.openai_client
+                
             response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[
@@ -322,9 +346,14 @@ class DemandPredictionService:
             # OpenAI API key not configured - provide enhanced fallback
             return {
                 "ai_available": False,
-                "error": "OpenAI API key not configured - using basic recommendations",
-                "critical_items": [],
-                "overstock_items": [],
+                "demo_mode": True,
+                "note": "This is demo data. Configure OpenAI API key for real AI recommendations.",
+                "critical_items": [
+                    {"item": "Demo Item", "reason": "Low stock simulation", "action": "Monitor in real system"}
+                ],
+                "overstock_items": [
+                    {"item": "Demo Overstock", "reason": "Excess inventory simulation"}
+                ],
                 "reorder_recommendations": [
                     {
                         "item": "Configure OpenAI API",
@@ -333,13 +362,23 @@ class DemandPredictionService:
                     }
                 ],
                 "cost_optimization": [
-                    "Monitor usage patterns manually", 
-                    "Track waste daily",
-                    "Configure AI for automated insights"
+                    "Review supplier contracts regularly",
+                    "Monitor food waste patterns",
+                    "Optimize order quantities based on usage patterns"
                 ],
-                "supplier_recommendations": ["Diversify supplier base", "Negotiate better rates"],
-                "seasonal_adjustments": ["Plan for seasonal changes manually"],
-                "waste_reduction": ["Implement FIFO inventory system", "Track expiration dates"]
+                "supplier_recommendations": [
+                    "Diversify supplier base for critical ingredients",
+                    "Negotiate bulk purchase discounts"
+                ],
+                "seasonal_adjustments": [
+                    "Adjust orders for seasonal menu changes",
+                    "Account for holiday demand fluctuations"
+                ],
+                "waste_reduction": [
+                    "Implement FIFO (First In, First Out) rotation",
+                    "Track expiration dates closely",
+                    "Use older ingredients in daily specials"
+                ]
             }
         except Exception as e:
             return {

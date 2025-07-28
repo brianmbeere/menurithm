@@ -60,7 +60,6 @@ class InventoryItemEnhanced(Base):
     optimal_stock_level = Column(Float)  # ML-optimized stock level
     
     # Relationships
-    dish_ingredients = relationship("DishIngredient", back_populates="ingredient")
     purchase_orders = relationship("PurchaseOrder", back_populates="inventory_item")
     stock_movements = relationship("StockMovement", back_populates="inventory_item")
 

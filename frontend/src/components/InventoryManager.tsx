@@ -11,6 +11,7 @@ import deleteInventory from "../api/deleteInventory";
 import uploadInventoryFile from "../api/uploadInventoryFile";
 import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
+import { advancedInventoryAPI } from "../api/advancedInventory";
 import CSVHelpDialog from "./CSVHelpDialog";
 import { formatDate } from "../utils";
 
@@ -174,6 +175,53 @@ const InventoryManager = () => {
     setPage(0);
   };
 
+  // AI-Powered Feature Handlers
+  const handleAIOptimization = async () => {
+    try {
+      setSnackbar({ message: "🤖 Running AI optimization...", severity: "success" });
+      await advancedInventoryAPI.runOptimization();
+      setSnackbar({ message: "✅ AI optimization completed!", severity: "success" });
+    } catch (error) {
+      setSnackbar({ message: "❌ AI optimization failed", severity: "error" });
+    }
+  };
+
+  const handleAutoOrder = async () => {
+    try {
+      setSnackbar({ message: "🚛 Creating auto orders...", severity: "success" });
+      const result = await advancedInventoryAPI.createAutoOrder();
+      setSnackbar({ 
+        message: `✅ Created ${result.orders_created} orders (${result.total_estimated_cost})`, 
+        severity: "success" 
+      });
+    } catch (error) {
+      setSnackbar({ message: "❌ Auto order failed", severity: "error" });
+    }
+  };
+
+  const handleVoiceCommand = async () => {
+    try {
+      setSnackbar({ message: "🎤 Starting voice update session...", severity: "success" });
+      await advancedInventoryAPI.startVoiceUpdate();
+      setSnackbar({ message: "✅ Voice session started! Speak your inventory updates.", severity: "success" });
+    } catch (error) {
+      setSnackbar({ message: "❌ Voice update failed", severity: "error" });
+    }
+  };
+
+  const handleSmartAlerts = async () => {
+    try {
+      const alertsData = await advancedInventoryAPI.getAlerts('high');
+      const alertCount = alertsData.alerts.length;
+      setSnackbar({ 
+        message: `🚨 Found ${alertCount} high-priority alerts`, 
+        severity: alertCount > 0 ? "error" : "success" 
+      });
+    } catch (error) {
+      setSnackbar({ message: "❌ Failed to fetch alerts", severity: "error" });
+    }
+  };
+
   const filtered = inventory.filter((item) =>
     [item.ingredient_name, item.category, item.storage_location]
       .some(field => field.toLowerCase().includes(search.toLowerCase()))
@@ -236,6 +284,52 @@ const InventoryManager = () => {
               disabled={!csvFile}
             >
               Upload
+            </Button>
+          </Grid>
+        </Grid>
+
+        {/* AI-Powered Features Section */}
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle1" gutterBottom>🤖 AI-Powered Features</Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid columns={{ xs: 12, sm: 3 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={handleAIOptimization}
+              sx={{ color: 'primary.main' }}
+            >
+              ✨ AI Optimization
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 3 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={handleAutoOrder}
+              sx={{ color: 'success.main' }}
+            >
+              🚛 Auto Order
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 3 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={handleVoiceCommand}
+              sx={{ color: 'secondary.main' }}
+            >
+              🎤 Voice Update
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 3 }}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={handleSmartAlerts}
+              sx={{ color: 'warning.main' }}
+            >
+              🚨 Smart Alerts
             </Button>
           </Grid>
         </Grid>

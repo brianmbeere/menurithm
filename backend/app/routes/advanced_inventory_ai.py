@@ -6,7 +6,7 @@ import asyncio
 import os
 
 from app.db.database import get_db
-from app.utils.auth import get_current_user
+from app.utils.auth_enhanced import get_current_user
 from app.models.user import User
 from app.models.inventory import InventoryItem
 from app.models.sales import Sale
@@ -57,6 +57,9 @@ async def get_demand_forecast(
     """Get AI-powered demand forecast for specific item"""
     try:
         user_id = current_user.firebase_uid
+        
+        # Initialize demand service
+        demand_service = DemandPredictionService()
         
         forecast = await demand_service.predict_demand(
             db, user_id, item_name, days_ahead
@@ -161,6 +164,9 @@ async def create_auto_order(
     try:
         user_id = current_user.firebase_uid
         
+        # Initialize demand service
+        demand_service = DemandPredictionService()
+        
         # Get inventory recommendations
         recommendations = await demand_service.get_inventory_recommendations(db, user_id)
         
@@ -194,6 +200,9 @@ async def get_optimization_report(
     """Get comprehensive inventory optimization report"""
     try:
         user_id = current_user.firebase_uid
+        
+        # Initialize demand service
+        demand_service = DemandPredictionService()
         
         # Gather multiple data sources
         analytics_task = demand_service.analyze_sales_patterns(db, user_id)
@@ -311,6 +320,9 @@ async def optimize_inventory(
 async def run_optimization_process(db: Session, user_id: str):
     """Background task for running comprehensive optimization"""
     try:
+        # Initialize demand service
+        demand_service = DemandPredictionService()
+        
         # Run all optimization tasks
         await demand_service.analyze_sales_patterns(db, user_id)
         recommendations = await demand_service.get_inventory_recommendations(db, user_id)
