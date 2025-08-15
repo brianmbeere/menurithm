@@ -1,4 +1,3 @@
-import speech_recognition as sr
 import json
 import re
 from typing import Dict, Optional, Tuple, List
@@ -11,12 +10,24 @@ from app.schemas.inventory import InventoryItemIn
 
 logger = logging.getLogger(__name__)
 
+try:
+    import speech_recognition as sr
+    SPEECH_RECOGNITION_AVAILABLE = True
+except ImportError:
+    logger.warning("SpeechRecognition not available - voice features will be disabled")
+    SPEECH_RECOGNITION_AVAILABLE = False
+    sr = None
+
 class VoiceInventoryService:
     """Service for processing voice commands for inventory management"""
     
     def __init__(self, db: Session):
         self.db = db
-        self.recognizer = sr.Recognizer()
+        if SPEECH_RECOGNITION_AVAILABLE:
+            self.recognizer = sr.Recognizer()
+        else:
+            self.recognizer = None
+            logger.warning("Voice recognition not available - PyAudio/SpeechRecognition dependencies missing")
         
         # Common phrases for inventory operations
         self.add_patterns = [
@@ -40,6 +51,13 @@ class VoiceInventoryService:
         
     def process_voice_command(self, audio_file_path: str, user_id: str) -> Dict:
         """Process voice command and execute inventory operation"""
+        if not SPEECH_RECOGNITION_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Voice recognition not available - PyAudio/SpeechRecognition dependencies missing",
+                "message": "Voice features are disabled on this deployment"
+            }
+            
         try:
             # Convert speech to text
             text, confidence = self._speech_to_text(audio_file_path)
@@ -78,6 +96,9 @@ class VoiceInventoryService:
     
     def _speech_to_text(self, audio_file_path: str) -> Tuple[str, float]:
         """Convert audio file to text using speech recognition"""
+        if not SPEECH_RECOGNITION_AVAILABLE or not self.recognizer:
+            raise Exception("Speech recognition not available")
+            
         try:
             with sr.AudioFile(audio_file_path) as source:
                 # Adjust for ambient noise
