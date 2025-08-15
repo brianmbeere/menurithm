@@ -44,15 +44,21 @@ export interface SmartAlert {
   resolved: boolean;
 }
 
-export interface VoiceCommand {
-  id: string;
-  transcript: string;
-  confidence: number;
-  action: string;
-  parameters: Record<string, any>;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  result?: string;
-  created_at: string;
+export interface VoiceCommandSuggestion {
+  pattern: string;
+  description: string;
+  example: string;
+}
+
+export interface VoiceProcessingResult {
+  success: boolean;
+  message: string;
+  result?: {
+    action: string;
+    parameters: Record<string, any>;
+    confidence: number;
+  };
+  status: 'completed' | 'failed' | 'unavailable';
 }
 
 export interface Supplier {
@@ -139,22 +145,35 @@ export class AdvancedInventoryAPI {
   }
 
   /**
-   * Start voice update session
+   * Check voice recognition system status
    */
-  async startVoiceUpdate(): Promise<{ session_id: string; message: string }> {
-    return this.client.authRequest('/api/advanced-inventory/voice-update', {
-      method: 'POST',
-    });
+   async getVoiceStatus(): Promise<{
+    success: boolean;
+    voice_available: boolean;
+    speech_recognition_module: boolean;
+    message: string;
+    instructions?: {
+      usage: string;
+      supported_formats: string[];
+      max_duration: string;
+    };
+  }> {
+    return this.client.authRequest('/api/advanced-inventory/voice-status');
   }
 
   /**
-   * Process voice command
+   * Process voice command from audio file
    */
-  async processVoiceCommand(audioData: Blob): Promise<VoiceCommand> {
+  async processVoiceCommand(audioFile: File): Promise<{
+    success: boolean;
+    message: string;
+    result?: any;
+    status: string;
+  }> {
     const formData = new FormData();
-    formData.append('audio', audioData);
+    formData.append('audio_file', audioFile);
 
-    const response = await fetch(`${this.client['baseURL']}/voice-commands/process`, {
+    const response = await fetch(`${this.client['baseURL']}/api/advanced-inventory/voice-update`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${await this.getAuthToken()}`,
@@ -163,16 +182,22 @@ export class AdvancedInventoryAPI {
     });
 
     if (!response.ok) {
-      throw new Error(`Voice processing failed: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(`Voice processing failed: ${errorData.detail || response.statusText}`);
     }
 
     return response.json();
   }
 
   /**
-   * Get voice command history
+   * Get voice command examples and suggestions
    */
-  async getVoiceCommands(limit: number = 20): Promise<{ commands: VoiceCommand[] }> {
+  async getVoiceCommands(limit: number = 20): Promise<{
+    success: boolean;
+    commands: string[];
+    total_available: number;
+    examples: string[];
+  }> {
     return this.client.authRequest(`/api/advanced-inventory/voice-commands?limit=${limit}`);
   }
 

@@ -201,11 +201,64 @@ const InventoryManager = () => {
 
   const handleVoiceCommand = async () => {
     try {
-      setSnackbar({ message: "🎤 Starting voice update session...", severity: "success" });
-      await advancedInventoryAPI.startVoiceUpdate();
-      setSnackbar({ message: "✅ Voice session started! Speak your inventory updates.", severity: "success" });
+      // First check if voice recognition is available
+      setSnackbar({ message: "🎤 Checking voice system status...", severity: "success" });
+      const status = await advancedInventoryAPI.getVoiceStatus();
+      
+      if (!status.voice_available) {
+        setSnackbar({ 
+          message: "❌ Voice recognition not available. " + status.message, 
+          severity: "error" 
+        });
+        return;
+      }
+
+      // Create file input for audio upload
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'audio/*,.wav,.mp3,.m4a';
+      input.onchange = async (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        try {
+          setSnackbar({ message: "🎤 Processing voice command...", severity: "success" });
+          const result = await advancedInventoryAPI.processVoiceCommand(file);
+          
+          if (result.success) {
+            setSnackbar({ 
+              message: `✅ Voice command processed: ${result.message}`, 
+              severity: "success" 
+            });
+            // Refresh inventory after successful voice update
+            await fetchInventory();
+          } else {
+            setSnackbar({ 
+              message: `⚠️ Voice processing: ${result.message}`, 
+              severity: "error" 
+            });
+          }
+        } catch (error) {
+          console.error('Voice processing error:', error);
+          setSnackbar({ 
+            message: `❌ Voice processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+            severity: "error" 
+          });
+        }
+      };
+      
+      input.click();
+      setSnackbar({ 
+        message: "📁 Please select an audio file with your voice command", 
+        severity: "success" 
+      });
+      
     } catch (error) {
-      setSnackbar({ message: "❌ Voice update failed", severity: "error" });
+      console.error('Voice command error:', error);
+      setSnackbar({ 
+        message: `❌ Voice system error: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        severity: "error" 
+      });
     }
   };
 

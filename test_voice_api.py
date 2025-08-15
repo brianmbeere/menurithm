@@ -119,6 +119,64 @@ def test_openapi_schema():
     except Exception as e:
         print(f"❌ Error testing OpenAPI schema: {e}")
 
+def test_frontend_integration():
+    """Test frontend integration patterns"""
+    print("\n🌐 Testing frontend integration patterns...")
+    
+    # Test the expected frontend workflow
+    print("✅ Frontend should:")
+    print("   1. Call GET /api/advanced-inventory/voice-status to check availability")
+    print("   2. Use file input to let user select audio file")
+    print("   3. Call POST /api/advanced-inventory/voice-update with FormData")
+    print("   4. Call GET /api/advanced-inventory/voice-commands for examples")
+    
+    # Test if endpoints match frontend expectations
+    try:
+        response = requests.get(f"{BASE_URL}/openapi.json")
+        if response.status_code == 200:
+            schema = response.json()
+            paths = schema.get('paths', {})
+            
+            # Check voice-status endpoint (new)
+            if "/api/advanced-inventory/voice-status" in paths:
+                print("✅ voice-status endpoint available for frontend")
+            else:
+                print("❌ voice-status endpoint missing")
+            
+            # Check voice-update endpoint
+            voice_update = paths.get("/api/advanced-inventory/voice-update", {}).get("post", {})
+            if voice_update:
+                # Check if it expects multipart/form-data
+                request_body = voice_update.get("requestBody", {})
+                content = request_body.get("content", {})
+                if "multipart/form-data" in content:
+                    print("✅ voice-update endpoint properly configured for file uploads")
+                    
+                    # Check if it expects audio_file field
+                    schema_ref = content["multipart/form-data"]["schema"]["$ref"]
+                    schema_name = schema_ref.split("/")[-1]
+                    file_schema = schema["components"]["schemas"][schema_name]
+                    if "audio_file" in file_schema.get("properties", {}):
+                        print("✅ voice-update expects 'audio_file' field (matches frontend)")
+                    else:
+                        print("❌ voice-update doesn't expect 'audio_file' field")
+                else:
+                    print("❌ voice-update not configured for file uploads")
+            else:
+                print("❌ voice-update endpoint missing")
+                
+            # Check voice-commands endpoint
+            if "/api/advanced-inventory/voice-commands" in paths:
+                print("✅ voice-commands endpoint available for examples")
+            else:
+                print("❌ voice-commands endpoint missing")
+                
+        else:
+            print(f"❌ Failed to get schema: {response.status_code}")
+            
+    except Exception as e:
+        print(f"❌ Error testing frontend integration: {e}")
+
 def main():
     """Run all voice API tests"""
     print("🎯 Menurithm Voice API Test Suite")
@@ -144,6 +202,7 @@ def main():
     test_voice_commands()
     test_voice_update_no_file()
     test_voice_update_with_dummy_file()
+    test_frontend_integration()
     
     print("\n" + "=" * 50)
     print("🎯 Test Summary:")
