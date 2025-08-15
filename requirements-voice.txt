@@ -1,4 +1,0 @@
-# Optional dependencies for voice features
-# Install these for full voice recognition support
-PyAudio==0.2.14
-SpeechRecognition==3.14.3
