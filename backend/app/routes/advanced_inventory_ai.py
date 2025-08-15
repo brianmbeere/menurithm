@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
@@ -77,28 +77,55 @@ async def get_demand_forecast(
 
 @router.post("/voice-update")
 async def process_voice_update(
-    background_tasks: BackgroundTasks,
+    audio_file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Process voice inventory update"""
+    """Process voice inventory update from uploaded audio file"""
     try:
+        # Check if speech recognition is available
+        voice_service = VoiceInventoryService(db)
+        if not voice_service.recognizer:
+            return {
+                "success": False,
+                "message": "Voice recognition is not available. PyAudio/SpeechRecognition dependencies are missing.",
+                "fallback_message": "Please use text-based inventory updates instead.",
+                "status": "unavailable"
+            }
+        
         user_id = current_user.firebase_uid
         
-        # Initialize voice service with database connection
-        voice_service = VoiceInventoryService(db)
+        # Validate audio file
+        if not audio_file.content_type.startswith('audio/'):
+            raise HTTPException(status_code=400, detail="Please upload a valid audio file")
         
-        # Start voice recording and processing in background
-        background_tasks.add_task(
-            voice_service.start_voice_recording,
-            db, user_id
-        )
+        # Save uploaded audio file temporarily
+        import tempfile
+        import os
         
-        return {
-            "success": True,
-            "message": "Voice recording started. Speak your inventory update now.",
-            "status": "recording"
-        }
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_file:
+            content = await audio_file.read()
+            temp_file.write(content)
+            temp_audio_path = temp_file.name
+        
+        try:
+            # Initialize voice service and process the audio file
+            voice_service = VoiceInventoryService(db)
+            
+            # Process the audio file
+            result = voice_service.process_voice_command(temp_audio_path, user_id)
+            
+            return {
+                "success": True,
+                "message": "Voice command processed successfully",
+                "result": result,
+                "status": "completed"
+            }
+            
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Voice update failed: {str(e)}")
@@ -109,17 +136,22 @@ async def get_voice_commands(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get recent voice commands and their status"""
+    """Get voice command suggestions and examples"""
     try:
-        user_id = current_user.firebase_uid
-        
-        # Initialize voice service with database connection
-        voice_service = VoiceInventoryService(db)
-        commands = await voice_service.get_recent_commands(db, user_id, limit)
+        # Get voice command suggestions from the service
+        from app.services.voice_inventory import VoiceInventoryService
+        suggestions = VoiceInventoryService.suggest_voice_commands()
         
         return {
             "success": True,
-            "commands": commands
+            "commands": suggestions[:limit],
+            "total_available": len(suggestions),
+            "examples": [
+                "Add 5 pounds of tomatoes",
+                "Used 2 cups of flour", 
+                "How much milk do we have",
+                "Check chicken stock"
+            ]
         }
         
     except Exception as e:
