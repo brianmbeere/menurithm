@@ -7,32 +7,35 @@ APP_MODULE=app.main:app
 
 # === COMMANDS ===
 
-# Set up virtualenv and install dependencies (with smart PyAudio fallback)
+# Set up virtualenv and install dependencies (deployment-ready)
 setup:
 	python3 -m venv $(VENV_NAME)
 	$(PIP) install --upgrade pip
-	@echo "🎯 Attempting installation with PyAudio..."
-	@if $(PIP) install -r requirements.txt; then \
-		echo "✅ Full installation successful (including PyAudio)"; \
+	@echo "🎯 Installing dependencies (PyAudio-free for deployment compatibility)..."
+	$(PIP) install -r requirements.txt
+	@echo "✅ Installation complete with pydub + SpeechRecognition audio backend"
+
+# Legacy setup with PyAudio fallback (for development environments that might have PyAudio)
+setup-legacy:
+	python3 -m venv $(VENV_NAME)
+	$(PIP) install --upgrade pip
+	@echo "🎯 Attempting installation with potential PyAudio..."
+	@if $(PIP) install PyAudio==0.2.14; then \
+		echo "✅ PyAudio available, installing with full audio support"; \
+		$(PIP) install -r requirements.txt PyAudio==0.2.14; \
 	else \
-		echo "❌ PyAudio compilation failed, installing without PyAudio..."; \
-		echo "📦 Installing base dependencies..."; \
-		$(PIP) install -r requirements-deploy.txt; \
+		echo "❌ PyAudio compilation failed, using deployment-friendly setup..."; \
+		$(PIP) install -r requirements.txt; \
 		echo "✅ Fallback installation complete (pydub + SpeechRecognition)"; \
 	fi
 
-# Set up with deployment-friendly audio dependencies
+# Alternative setup using deployment-specific requirements (if needed)
 setup-deploy:
 	python3 -m venv $(VENV_NAME)
 	$(PIP) install --upgrade pip
-	@echo "🎯 Trying PyAudio installation..."
-	@if $(PIP) install -r requirements.txt; then \
-		echo "✅ Full installation with PyAudio successful"; \
-	else \
-		echo "❌ PyAudio failed, using fallback..."; \
-		$(PIP) install -r requirements-deploy.txt; \
-		echo "✅ Fallback installation complete"; \
-	fi
+	@echo "🎯 Using deployment-specific requirements..."
+	$(PIP) install -r requirements-deploy.txt
+	@echo "✅ Deployment setup complete"
 
 # Start backend server with auto-reload
 run:
