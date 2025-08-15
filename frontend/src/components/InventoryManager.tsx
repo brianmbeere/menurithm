@@ -13,6 +13,7 @@ import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
 import { advancedInventoryAPI } from "../api/advancedInventory";
 import CSVHelpDialog from "./CSVHelpDialog";
+import VoiceRecordingDialog from "./VoiceRecordingDialog";
 import { formatDate } from "../utils";
 
 const InventoryManager = () => {
@@ -44,6 +45,7 @@ const InventoryManager = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -199,67 +201,23 @@ const InventoryManager = () => {
     }
   };
 
-  const handleVoiceCommand = async () => {
-    try {
-      // First check if voice recognition is available
-      setSnackbar({ message: "🎤 Checking voice system status...", severity: "success" });
-      const status = await advancedInventoryAPI.getVoiceStatus();
-      
-      if (!status.voice_available) {
-        setSnackbar({ 
-          message: "❌ Voice recognition not available. " + status.message, 
-          severity: "error" 
-        });
-        return;
-      }
+  const handleVoiceCommand = () => {
+    setVoiceDialogOpen(true);
+  };
 
-      // Create file input for audio upload
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'audio/*,.wav,.mp3,.m4a';
-      input.onchange = async (event) => {
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
+  const handleVoiceSuccess = async (result: any) => {
+    setSnackbar({ 
+      message: `✅ Voice command processed: ${result.message}`, 
+      severity: "success" 
+    });
+    await fetchInventory();
+  };
 
-        try {
-          setSnackbar({ message: "🎤 Processing voice command...", severity: "success" });
-          const result = await advancedInventoryAPI.processVoiceCommand(file);
-          
-          if (result.success) {
-            setSnackbar({ 
-              message: `✅ Voice command processed: ${result.message}`, 
-              severity: "success" 
-            });
-            // Refresh inventory after successful voice update
-            await fetchInventory();
-          } else {
-            setSnackbar({ 
-              message: `⚠️ Voice processing: ${result.message}`, 
-              severity: "error" 
-            });
-          }
-        } catch (error) {
-          console.error('Voice processing error:', error);
-          setSnackbar({ 
-            message: `❌ Voice processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 
-            severity: "error" 
-          });
-        }
-      };
-      
-      input.click();
-      setSnackbar({ 
-        message: "📁 Please select an audio file with your voice command", 
-        severity: "success" 
-      });
-      
-    } catch (error) {
-      console.error('Voice command error:', error);
-      setSnackbar({ 
-        message: `❌ Voice system error: ${error instanceof Error ? error.message : 'Unknown error'}`, 
-        severity: "error" 
-      });
-    }
+  const handleVoiceError = (error: string) => {
+    setSnackbar({ 
+      message: `❌ Voice error: ${error}`, 
+      severity: "error" 
+    });
   };
 
   const handleSmartAlerts = async () => {
@@ -546,6 +504,14 @@ const InventoryManager = () => {
         open={showCSVHelpDialog}
         onClose={() => setShowCSVHelpDialog(false)}
         uploadType="inventory"
+      />
+
+      {/* Voice Recording Dialog */}
+      <VoiceRecordingDialog
+        open={voiceDialogOpen}
+        onClose={() => setVoiceDialogOpen(false)}
+        onSuccess={handleVoiceSuccess}
+        onError={handleVoiceError}
       />
 
       {/* Snackbar */}

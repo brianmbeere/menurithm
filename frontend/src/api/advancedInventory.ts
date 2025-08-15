@@ -162,6 +162,114 @@ export class AdvancedInventoryAPI {
   }
 
   /**
+   * Start live voice recording using browser microphone
+   */
+  async startLiveVoiceRecording(): Promise<{
+    mediaRecorder: MediaRecorder;
+    stop: () => Promise<any>;
+  }> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        }
+      });
+      
+      const audioChunks: Blob[] = [];
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm'
+      });
+      
+      mediaRecorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      });
+      
+      const stopRecording = (): Promise<any> => {
+        return new Promise((resolve, reject) => {
+          mediaRecorder.addEventListener('stop', async () => {
+            try {
+              // Stop all tracks to release microphone
+              stream.getTracks().forEach(track => track.stop());
+              
+              // Create audio file from recorded chunks
+              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              
+              // Convert to File for API compatibility
+              const audioFile = new File([audioBlob], 'voice-command.webm', {
+                type: 'audio/webm'
+              });
+              
+              // Process the recorded audio
+              const result = await this.processVoiceCommand(audioFile);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
+          
+          if (mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+          }
+        });
+      };
+      
+      // Start recording
+      mediaRecorder.start();
+      
+      return {
+        mediaRecorder,
+        stop: stopRecording
+      };
+      
+    } catch (error) {
+      throw new Error(`Microphone access failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Check microphone permissions and availability
+   */
+  async checkMicrophonePermissions(): Promise<{
+    available: boolean;
+    permission: PermissionState;
+    message: string;
+  }> {
+    try {
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return {
+          available: false,
+          permission: 'denied' as PermissionState,
+          message: 'Microphone access not supported in this browser'
+        };
+      }
+      
+      // Check microphone permission
+      const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      
+      return {
+        available: permission.state !== 'denied',
+        permission: permission.state,
+        message: permission.state === 'granted' 
+          ? 'Microphone access granted' 
+          : permission.state === 'prompt'
+          ? 'Microphone access will be requested'
+          : 'Microphone access denied'
+      };
+    } catch (error) {
+      return {
+        available: false,
+        permission: 'denied' as PermissionState,
+        message: 'Unable to check microphone permissions'
+      };
+    }
+  }
+
+  /**
    * Process voice command from audio file
    */
   async processVoiceCommand(audioFile: File): Promise<{
@@ -173,12 +281,12 @@ export class AdvancedInventoryAPI {
     const formData = new FormData();
     formData.append('audio_file', audioFile);
 
-    const response = await fetch(`${this.client['baseURL']}/api/advanced-inventory/voice-update`, {
+    // Use authFetch for proper authentication
+    const { authFetch } = await import('../hooks/authFetch');
+    const response = await authFetch(`${this.client['baseURL']}/api/advanced-inventory/voice-update`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${await this.getAuthToken()}`,
-      },
       body: formData,
+      // Don't set Content-Type header - let browser set it for multipart/form-data
     });
 
     if (!response.ok) {
@@ -295,12 +403,6 @@ export class AdvancedInventoryAPI {
     });
   }
 
-  // Helper method to get auth token
-  private async getAuthToken(): Promise<string> {
-    // This would integrate with your existing auth system
-    // For now, return empty string as authFetch handles authentication
-    return '';
-  }
 }
 
 // Singleton instance

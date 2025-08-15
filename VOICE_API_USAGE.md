@@ -85,6 +85,31 @@ curl -X POST "http://localhost:8000/api/advanced-inventory/voice-update" \
 
 **Solution**: Include valid Bearer token in Authorization header.
 
+**Frontend Fix**: Use `authFetch()` instead of manual `fetch()` calls.
+
+**Before (Causes 403)**:
+```javascript
+// ❌ Manual fetch with wrong auth
+const response = await fetch('/api/advanced-inventory/voice-update', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer empty-token'  // Wrong!
+  },
+  body: formData
+});
+```
+
+**After (Works)**:
+```javascript
+// ✅ Use authFetch for proper Firebase JWT authentication
+import { authFetch } from '../hooks/authFetch';
+
+const response = await authFetch('/api/advanced-inventory/voice-update', {
+  method: 'POST',
+  body: formData  // No manual headers needed
+});
+```
+
 ### 500 Internal Server Error
 **Cause**: 
 - PyAudio/SpeechRecognition dependencies missing
@@ -129,18 +154,19 @@ curl -X POST "http://localhost:8000/api/advanced-inventory/voice-update" \
 
 ### JavaScript/Fetch
 ```javascript
+import { authFetch } from '../hooks/authFetch';
+
 const formData = new FormData();
 formData.append('audio_file', audioFile);
 
-fetch('/api/advanced-inventory/voice-update', {
+// Use authFetch for proper Firebase JWT authentication
+const response = await authFetch('/api/advanced-inventory/voice-update', {
   method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
   body: formData
-})
-.then(response => response.json())
-.then(data => console.log(data));
+});
+
+const data = await response.json();
+console.log(data);
 ```
 
 ### Python/Requests

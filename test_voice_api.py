@@ -177,6 +177,42 @@ def test_frontend_integration():
     except Exception as e:
         print(f"❌ Error testing frontend integration: {e}")
 
+def test_authentication_requirements():
+    """Test authentication requirements for voice endpoints"""
+    print("\n🔐 Testing authentication requirements...")
+    
+    try:
+        # Test without authentication
+        response = requests.post(f"{API_BASE}/voice-update")
+        
+        if response.status_code == 403:
+            print("✅ voice-update correctly returns 403 Forbidden without auth")
+            error_detail = response.json().get('detail', '')
+            if 'not authenticated' in error_detail.lower():
+                print("✅ Clear authentication error message provided")
+                print(f"   Message: {error_detail}")
+        elif response.status_code == 422:
+            print("⚠️  voice-update returns 422 (validation) instead of 403 (auth)")
+            print("   This suggests request validation happens before auth check")
+        else:
+            print(f"❌ Unexpected response: {response.status_code}")
+            print(f"   Expected 403, got: {response.text}")
+            
+        # Test voice-status endpoint
+        response = requests.get(f"{API_BASE}/voice-status")
+        if response.status_code == 403:
+            print("✅ voice-status correctly requires authentication")
+        else:
+            print(f"⚠️  voice-status unexpected response: {response.status_code}")
+            
+        print("\n💡 Frontend Authentication Fix:")
+        print("   ✅ Use authFetch() instead of manual fetch()")
+        print("   ✅ Remove manual Authorization header")
+        print("   ✅ Let authFetch handle Firebase JWT tokens")
+            
+    except Exception as e:
+        print(f"❌ Authentication test failed: {e}")
+
 def main():
     """Run all voice API tests"""
     print("🎯 Menurithm Voice API Test Suite")
@@ -202,6 +238,7 @@ def main():
     test_voice_commands()
     test_voice_update_no_file()
     test_voice_update_with_dummy_file()
+    test_authentication_requirements()
     test_frontend_integration()
     
     print("\n" + "=" * 50)
