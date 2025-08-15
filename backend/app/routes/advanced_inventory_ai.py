@@ -11,7 +11,7 @@ from app.models.user import User
 from app.models.inventory import InventoryItem
 from app.models.sales import Sale
 from app.services.demand_prediction import DemandPredictionService
-from app.services.voice_inventory import VoiceInventoryService
+from app.services.voice_inventory import VoiceInventoryService, SPEECH_RECOGNITION_AVAILABLE
 from app.services.routecast_integration import RouteCastIntegrationService
 
 router = APIRouter(prefix="/api/advanced-inventory", tags=["Advanced Inventory"])
@@ -75,14 +75,55 @@ async def get_demand_forecast(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Demand forecast failed: {str(e)}")
 
+@router.get("/voice-status")
+async def get_voice_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check voice recognition system status"""
+    try:
+        # Check if voice recognition is available
+        voice_service = VoiceInventoryService(db)
+        
+        return {
+            "success": True,
+            "voice_available": bool(voice_service.recognizer),
+            "speech_recognition_module": SPEECH_RECOGNITION_AVAILABLE,
+            "message": "Voice recognition is ready" if voice_service.recognizer else "Voice recognition unavailable - PyAudio/SpeechRecognition missing",
+            "instructions": {
+                "usage": "Upload an audio file to /voice-update endpoint",
+                "supported_formats": ["WAV", "MP3", "M4A"],
+                "max_duration": "30 seconds recommended"
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "voice_available": False,
+            "error": str(e),
+            "message": "Voice system check failed"
+        }
+
 @router.post("/voice-update")
 async def process_voice_update(
-    audio_file: UploadFile = File(...),
+    audio_file: UploadFile = File(..., description="Audio file containing voice command (WAV, MP3, M4A)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Process voice inventory update from uploaded audio file"""
     try:
+        # Validate that audio file was provided
+        if not audio_file or not audio_file.filename:
+            raise HTTPException(
+                status_code=422, 
+                detail={
+                    "error": "Audio file is required",
+                    "message": "Please upload a valid audio file.",
+                    "expected_format": "multipart/form-data with 'audio_file' field",
+                    "supported_types": ["audio/wav", "audio/mp3", "audio/m4a", "audio/mpeg"]
+                }
+            )
         # Check if speech recognition is available
         voice_service = VoiceInventoryService(db)
         if not voice_service.recognizer:
