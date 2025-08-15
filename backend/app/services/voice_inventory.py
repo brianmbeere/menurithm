@@ -3,6 +3,8 @@ import re
 from typing import Dict, Optional, Tuple, List
 from datetime import datetime
 import logging
+import tempfile
+import os
 from sqlalchemy.orm import Session
 
 from app.models.inventory_enhanced import InventoryItemEnhanced, StockMovement
@@ -17,6 +19,15 @@ except ImportError:
     logger.warning("SpeechRecognition not available - voice features will be disabled")
     SPEECH_RECOGNITION_AVAILABLE = False
     sr = None
+
+# Alternative audio processing for deployment environments
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    logger.warning("pydub not available - limited audio format support")
+    PYDUB_AVAILABLE = False
+    AudioSegment = None
 
 class VoiceInventoryService:
     """Service for processing voice commands for inventory management"""
@@ -100,10 +111,20 @@ class VoiceInventoryService:
             raise Exception("Speech recognition not available")
             
         try:
-            with sr.AudioFile(audio_file_path) as source:
+            # Handle different audio formats
+            processed_audio_path = self._prepare_audio_file(audio_file_path)
+            
+            with sr.AudioFile(processed_audio_path) as source:
                 # Adjust for ambient noise
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.record(source)
+            
+            # Clean up temporary file if created
+            if processed_audio_path != audio_file_path:
+                try:
+                    os.unlink(processed_audio_path)
+                except:
+                    pass
             
             # Use Google Speech Recognition (you can switch to other engines)
             text = self.recognizer.recognize_google(audio)
@@ -118,6 +139,49 @@ class VoiceInventoryService:
         except sr.RequestError as e:
             logger.error(f"Speech recognition service error: {e}")
             return "", 0.0
+        except Exception as e:
+            logger.error(f"Audio processing error: {e}")
+            raise e
+    
+    def _prepare_audio_file(self, audio_file_path: str) -> str:
+        """Prepare audio file for speech recognition (convert format if needed)"""
+        try:
+            # Try to read as AudioFile directly first
+            with sr.AudioFile(audio_file_path) as source:
+                # If this works, file is already in correct format
+                return audio_file_path
+        except Exception as e:
+            logger.info(f"Direct audio file read failed: {e}, attempting conversion...")
+            
+            # If direct read fails, try to convert using pydub
+            if not PYDUB_AVAILABLE:
+                raise Exception(f"Audio file could not be read as PCM WAV, AIFF/AIFF-C, or Native FLAC; check if file is corrupted or in another format. pydub not available for conversion.")
+            
+            try:
+                # Load audio with pydub (supports many formats)
+                audio = AudioSegment.from_file(audio_file_path)
+                
+                # Convert to WAV format that speech_recognition can handle
+                temp_fd, temp_path = tempfile.mkstemp(suffix='.wav')
+                os.close(temp_fd)
+                
+                # Export as WAV with proper settings for speech recognition
+                audio.export(
+                    temp_path,
+                    format="wav",
+                    parameters=[
+                        "-acodec", "pcm_s16le",  # 16-bit PCM
+                        "-ac", "1",              # Mono
+                        "-ar", "16000"           # 16kHz sample rate
+                    ]
+                )
+                
+                logger.info(f"Converted audio file from {audio_file_path} to {temp_path}")
+                return temp_path
+                
+            except Exception as conversion_error:
+                logger.error(f"Audio conversion failed: {conversion_error}")
+                raise Exception(f"Audio file could not be read as PCM WAV, AIFF/AIFF-C, or Native FLAC; check if file is corrupted or in another format")
     
     def _parse_inventory_command(self, text: str) -> Tuple[str, Dict]:
         """Parse voice command to extract action and parameters"""

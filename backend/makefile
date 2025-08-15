@@ -13,6 +13,19 @@ setup:
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
 
+# Set up with deployment-friendly audio dependencies
+setup-deploy:
+	python3 -m venv $(VENV_NAME)
+	$(PIP) install --upgrade pip
+	@echo "🎯 Trying PyAudio installation..."
+	@if $(PIP) install -r requirements.txt; then \
+		echo "✅ Full installation with PyAudio successful"; \
+	else \
+		echo "❌ PyAudio failed, using fallback..."; \
+		$(PIP) install -r requirements-deploy.txt; \
+		echo "✅ Fallback installation complete"; \
+	fi
+
 # Start backend server with auto-reload
 run:
 	@echo "Starting FastAPI backend..."
