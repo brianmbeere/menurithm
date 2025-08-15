@@ -38,10 +38,23 @@ POST /api/advanced-inventory/voice-update
 - `audio_file` (required): Audio file containing voice command
 
 **Supported Audio Formats**:
-- WAV (recommended)
-- MP3
-- M4A
-- MPEG
+- WAV (recommended - best compatibility)
+- AIFF/AIFF-C
+- FLAC (Native format)
+- WebM (auto-converted to WAV)
+- MP3 (auto-converted to WAV)
+- M4A (auto-converted to WAV)
+
+**Audio Requirements**:
+- Sample Rate: 16kHz recommended
+- Duration: Maximum 60 seconds
+- Channels: Mono or Stereo
+- Quality: Clear speech, minimal background noise
+
+**Format Conversion**:
+- Frontend automatically converts unsupported formats to WAV
+- Backend only accepts PCM WAV, AIFF/AIFF-C, or Native FLAC
+- Conversion uses Web Audio API for optimal quality
 
 **Example Voice Commands**:
 - "Add 5 pounds of tomatoes"

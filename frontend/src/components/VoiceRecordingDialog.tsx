@@ -108,31 +108,31 @@ export const VoiceRecordingDialog: React.FC<VoiceRecordingDialogProps> = ({
     }
   };
 
-  const handleFileUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'audio/*,.wav,.mp3,.m4a';
-    input.onchange = async (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      try {
-        setProcessing(true);
-        const result = await advancedInventoryAPI.processVoiceCommand(file);
-        setProcessing(false);
-        
-        if (result.success) {
-          onSuccess(result);
-          onClose();
-        } else {
-          onError(`File processing failed: ${result.message}`);
-        }
-      } catch (error) {
-        setProcessing(false);
-        onError(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-    input.click();
+    // Check file format
+    const supportedFormats = ['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/aiff', 'audio/flac'];
+    const isSupported = supportedFormats.includes(file.type) || 
+                       file.name.match(/\.(wav|aiff|flac)$/i);
+
+    if (!isSupported) {
+      // Show format warning but still allow processing (conversion will be attempted)
+      console.warn(`File format ${file.type} may require conversion. Supported formats: WAV, AIFF, FLAC`);
+    }
+
+    setProcessing(true);
+    try {
+      const result = await advancedInventoryAPI.processVoiceCommand(file);
+      onSuccess(result);
+      onClose();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process voice command';
+      onError(errorMessage);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -206,15 +206,24 @@ export const VoiceRecordingDialog: React.FC<VoiceRecordingDialogProps> = ({
                 {isRecording ? '🛑 Stop' : '🎤 Start Recording'}
               </Button>
               
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={handleFileUpload}
-                disabled={processing || isRecording}
-                sx={{ minWidth: 140 }}
-              >
-                📁 Upload File
-              </Button>
+              <input
+                accept="audio/wav,audio/aiff,audio/flac,.wav,.aiff,.flac"
+                style={{ display: 'none' }}
+                id="audio-file-upload"
+                type="file"
+                onChange={handleFileUpload}
+              />
+              <label htmlFor="audio-file-upload">
+                <Button
+                  variant="outlined"
+                  size="large"
+                  component="span"
+                  disabled={processing || isRecording}
+                  sx={{ minWidth: 140 }}
+                >
+                  📁 Upload File
+                </Button>
+              </label>
             </Box>
 
             {/* Recording Progress */}

@@ -178,8 +178,15 @@ export class AdvancedInventoryAPI {
       });
       
       const audioChunks: Blob[] = [];
+      
+      // Try to use WAV format if supported, fallback to WebM
+      let mimeType = 'audio/wav';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+      }
+      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm'
+        mimeType: mimeType
       });
       
       mediaRecorder.addEventListener('dataavailable', (event) => {
@@ -196,15 +203,31 @@ export class AdvancedInventoryAPI {
               stream.getTracks().forEach(track => track.stop());
               
               // Create audio file from recorded chunks
-              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              const audioBlob = new Blob(audioChunks, { type: mimeType });
               
-              // Convert to File for API compatibility
-              const audioFile = new File([audioBlob], 'voice-command.webm', {
-                type: 'audio/webm'
-              });
+              // Convert to WAV format if needed
+              let finalAudioFile: File;
+              if (mimeType === 'audio/wav') {
+                finalAudioFile = new File([audioBlob], 'voice-command.wav', {
+                  type: 'audio/wav'
+                });
+              } else {
+                // Convert WebM to WAV using Web Audio API
+                try {
+                  const wavFile = await this.convertToWav(audioBlob);
+                  finalAudioFile = new File([wavFile], 'voice-command.wav', {
+                    type: 'audio/wav'
+                  });
+                } catch (conversionError) {
+                  console.warn('WAV conversion failed, using original format:', conversionError);
+                  finalAudioFile = new File([audioBlob], 'voice-command.webm', {
+                    type: mimeType
+                  });
+                }
+              }
               
               // Process the recorded audio
-              const result = await this.processVoiceCommand(audioFile);
+              const result = await this.processVoiceCommand(finalAudioFile);
               resolve(result);
             } catch (error) {
               reject(error);
@@ -228,6 +251,73 @@ export class AdvancedInventoryAPI {
     } catch (error) {
       throw new Error(`Microphone access failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Convert audio blob to WAV format using Web Audio API
+   */
+  private async convertToWav(audioBlob: Blob | File): Promise<Blob> {
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    try {
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      // Convert to WAV format
+      const wavBuffer = this.audioBufferToWav(audioBuffer);
+      return new Blob([wavBuffer], { type: 'audio/wav' });
+    } finally {
+      await audioContext.close();
+    }
+  }
+
+  /**
+   * Convert AudioBuffer to WAV format
+   */
+  private audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
+    const length = buffer.length;
+    const numberOfChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+    const view = new DataView(arrayBuffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    // RIFF chunk descriptor
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+    writeString(8, 'WAVE');
+    
+    // FMT sub-chunk
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true); // Sub-chunk size
+    view.setUint16(20, 1, true); // Audio format (1 = PCM)
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true); // Byte rate
+    view.setUint16(32, numberOfChannels * 2, true); // Block align
+    view.setUint16(34, 16, true); // Bits per sample
+    
+    // Data sub-chunk
+    writeString(36, 'data');
+    view.setUint32(40, length * numberOfChannels * 2, true);
+    
+    // Write audio data
+    let offset = 44;
+    for (let i = 0; i < length; i++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    
+    return arrayBuffer;
   }
 
   /**
@@ -278,6 +368,27 @@ export class AdvancedInventoryAPI {
     result?: any;
     status: string;
   }> {
+    // Validate audio file format
+    const supportedFormats = ['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/aiff', 'audio/flac'];
+    
+    if (!supportedFormats.includes(audioFile.type) && !audioFile.name.match(/\.(wav|aiff|flac)$/i)) {
+      // Try to convert unsupported formats to WAV
+      if (audioFile.type.includes('webm') || audioFile.type.includes('mp3') || audioFile.type.includes('ogg')) {
+        try {
+          console.log(`Converting ${audioFile.type} to WAV format...`);
+          const wavBlob = await this.convertToWav(audioFile);
+          audioFile = new File([wavBlob], audioFile.name.replace(/\.[^.]+$/, '.wav'), {
+            type: 'audio/wav'
+          });
+        } catch (conversionError) {
+          console.error('Audio conversion failed:', conversionError);
+          throw new Error(`Unsupported audio format: ${audioFile.type}. Please use WAV, AIFF, or FLAC format.`);
+        }
+      } else {
+        throw new Error(`Unsupported audio format: ${audioFile.type}. Please use WAV, AIFF, or FLAC format.`);
+      }
+    }
+
     const formData = new FormData();
     formData.append('audio_file', audioFile);
 
