@@ -85,15 +85,39 @@ async def get_voice_status(
         # Check if voice recognition is available
         voice_service = VoiceInventoryService(db)
         
+        # Check available audio processing backends
+        audio_backends = []
+        if SPEECH_RECOGNITION_AVAILABLE:
+            audio_backends.append("SpeechRecognition")
+        
+        # Import check for pydub
+        try:
+            from pydub import AudioSegment
+            audio_backends.append("pydub")
+        except ImportError:
+            pass
+        
+        # Import check for PyAudio (optional)
+        try:
+            import pyaudio
+            audio_backends.append("PyAudio")
+        except ImportError:
+            pass
+        
+        is_voice_available = bool(voice_service.recognizer)
+        
         return {
             "success": True,
-            "voice_available": bool(voice_service.recognizer),
+            "voice_available": is_voice_available,
             "speech_recognition_module": SPEECH_RECOGNITION_AVAILABLE,
-            "message": "Voice recognition is ready" if voice_service.recognizer else "Voice recognition unavailable - PyAudio/SpeechRecognition missing",
+            "audio_backends": audio_backends,
+            "deployment_mode": "production" if "PyAudio" not in audio_backends else "development",
+            "message": "Voice recognition is ready" if is_voice_available else "Voice recognition unavailable - SpeechRecognition missing",
             "instructions": {
                 "usage": "Upload an audio file to /voice-update endpoint",
-                "supported_formats": ["WAV", "MP3", "M4A"],
-                "max_duration": "30 seconds recommended"
+                "supported_formats": ["WAV", "AIFF", "FLAC"] + (["WebM", "MP3", "M4A"] if "pydub" in audio_backends else []),
+                "max_duration": "60 seconds",
+                "format_conversion": "Automatic conversion available" if "pydub" in audio_backends else "WAV/AIFF/FLAC only"
             }
         }
         
@@ -107,7 +131,7 @@ async def get_voice_status(
 
 @router.post("/voice-update")
 async def process_voice_update(
-    audio_file: UploadFile = File(..., description="Audio file containing voice command (WAV, MP3, M4A)"),
+    audio_file: UploadFile = File(..., description="Audio file containing voice command (WAV, AIFF, FLAC, or auto-converted formats)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -121,7 +145,7 @@ async def process_voice_update(
                     "error": "Audio file is required",
                     "message": "Please upload a valid audio file.",
                     "expected_format": "multipart/form-data with 'audio_file' field",
-                    "supported_types": ["audio/wav", "audio/mp3", "audio/m4a", "audio/mpeg"]
+                    "supported_types": ["audio/wav", "audio/aiff", "audio/flac", "audio/webm", "audio/mp3", "audio/m4a"]
                 }
             )
         # Check if speech recognition is available
@@ -129,7 +153,7 @@ async def process_voice_update(
         if not voice_service.recognizer:
             return {
                 "success": False,
-                "message": "Voice recognition is not available. PyAudio/SpeechRecognition dependencies are missing.",
+                "message": "Voice recognition is not available. SpeechRecognition module is missing.",
                 "fallback_message": "Please use text-based inventory updates instead.",
                 "status": "unavailable"
             }

@@ -7,11 +7,19 @@ APP_MODULE=app.main:app
 
 # === COMMANDS ===
 
-# Set up virtualenv and install dependencies
+# Set up virtualenv and install dependencies (with smart PyAudio fallback)
 setup:
 	python3 -m venv $(VENV_NAME)
 	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	@echo "🎯 Attempting installation with PyAudio..."
+	@if $(PIP) install -r requirements.txt; then \
+		echo "✅ Full installation successful (including PyAudio)"; \
+	else \
+		echo "❌ PyAudio compilation failed, installing without PyAudio..."; \
+		echo "📦 Installing base dependencies..."; \
+		$(PIP) install -r requirements-deploy.txt; \
+		echo "✅ Fallback installation complete (pydub + SpeechRecognition)"; \
+	fi
 
 # Set up with deployment-friendly audio dependencies
 setup-deploy:

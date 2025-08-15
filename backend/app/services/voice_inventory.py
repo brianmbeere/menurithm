@@ -36,9 +36,14 @@ class VoiceInventoryService:
         self.db = db
         if SPEECH_RECOGNITION_AVAILABLE:
             self.recognizer = sr.Recognizer()
+            logger.info("Voice recognition initialized successfully")
+            if PYDUB_AVAILABLE:
+                logger.info("pydub available for audio format conversion")
+            else:
+                logger.warning("pydub not available - limited audio format support")
         else:
             self.recognizer = None
-            logger.warning("Voice recognition not available - PyAudio/SpeechRecognition dependencies missing")
+            logger.warning("Voice recognition not available - SpeechRecognition dependencies missing")
         
         # Common phrases for inventory operations
         self.add_patterns = [
@@ -65,8 +70,8 @@ class VoiceInventoryService:
         if not SPEECH_RECOGNITION_AVAILABLE:
             return {
                 "success": False,
-                "error": "Voice recognition not available - PyAudio/SpeechRecognition dependencies missing",
-                "message": "Voice features are disabled on this deployment"
+                "error": "Voice recognition not available - SpeechRecognition dependencies missing",
+                "message": "Voice features are disabled on this deployment. Install SpeechRecognition to enable voice commands."
             }
             
         try:
