@@ -2,10 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFi
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import asyncio
 import os
 
 from app.db.database import get_db
+
+
+class ProduceOrderRequest(BaseModel):
+    """Request model for creating produce orders"""
+    restaurant_name: str
+    produce_type: str
+    quantity_needed: float
+    unit: str
+    delivery_address: str
+    delivery_window_start: Optional[str] = None
+    delivery_window_end: Optional[str] = None
+    max_price_per_unit: Optional[float] = None
+    special_requirements: Optional[str] = None
+    organic_preferred: Optional[bool] = False
 from app.utils.auth_enhanced import get_current_user
 from app.models.user import User
 from app.models.inventory import InventoryItem
@@ -523,17 +538,14 @@ async def get_available_produce(
 
 @router.post("/create-produce-order")
 async def create_produce_order(
-    order_data: dict,
+    order_data: ProduceOrderRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Create a produce order through RouteCast"""
     try:
-        # Validate required fields
-        required_fields = ["restaurant_name", "produce_type", "quantity_needed", "unit", "delivery_address"]
-        for field in required_fields:
-            if field not in order_data or not order_data[field]:
-                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        # Convert Pydantic model to dict for service
+        order_dict = order_data.model_dump()
         
         api_key = os.getenv("ROUTECAST_API_KEY")
         base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
@@ -541,7 +553,7 @@ async def create_produce_order(
         routecast_service = RouteCastIntegrationService(db, api_key, base_url)
         result = await routecast_service.create_produce_request(
             user_id=current_user.firebase_uid,
-            order_data=order_data
+            order_data=order_dict
         )
         
         if not result.get("success"):

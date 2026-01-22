@@ -279,7 +279,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## 👤 Author
 
-**Njenga**
+**Brian Mbeere**
 
 Full-stack software engineer specializing in AI/ML integration, distributed systems, and restaurant technology solutions.
 
