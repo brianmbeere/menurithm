@@ -14,6 +14,7 @@ import addInventory from "../api/addInventory";
 import { advancedInventoryAPI } from "../api/advancedInventory";
 import CSVHelpDialog from "./CSVHelpDialog";
 import VoiceRecordingDialog from "./VoiceRecordingDialog";
+import ProduceOrderDialog from "./ProduceOrderDialog";
 import { formatDate } from "../utils";
 
 const InventoryManager = () => {
@@ -44,9 +45,10 @@ const InventoryManager = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
-  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" | "info" } | null>(null);
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [produceOrderDialogOpen, setProduceOrderDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchInventory().then(setInventory);
@@ -190,10 +192,10 @@ const InventoryManager = () => {
 
   const handleAutoOrder = async () => {
     try {
-      setSnackbar({ message: "🚛 Creating auto orders...", severity: "success" });
+      setSnackbar({ message: "🚛 Creating auto orders...", severity: "info" });
       const result = await advancedInventoryAPI.createAutoOrder();
       setSnackbar({ 
-        message: `✅ Created ${result.orders_created} orders (${result.total_estimated_cost})`, 
+        message: `✅ Created ${result.orders_created} orders ($${result.total_estimated_cost.toFixed(2)})`, 
         severity: "success" 
       });
     } catch (error) {
@@ -303,7 +305,7 @@ const InventoryManager = () => {
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle1" gutterBottom>🤖 AI-Powered Features</Typography>
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 3 }}>
+          <Grid columns={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -313,7 +315,7 @@ const InventoryManager = () => {
               ✨ AI Optimization
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 3 }}>
+          <Grid columns={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -323,7 +325,17 @@ const InventoryManager = () => {
               🚛 Auto Order
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 3 }}>
+          <Grid columns={{ xs: 12, sm: 2.4 }}>
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setProduceOrderDialogOpen(true)}
+              sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
+            >
+              🥬 Order Produce
+            </Button>
+          </Grid>
+          <Grid columns={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -333,7 +345,7 @@ const InventoryManager = () => {
               🎤 Voice Update
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 3 }}>
+          <Grid columns={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -512,6 +524,24 @@ const InventoryManager = () => {
         onClose={() => setVoiceDialogOpen(false)}
         onSuccess={handleVoiceSuccess}
         onError={handleVoiceError}
+      />
+
+      {/* Produce Order Dialog */}
+      <ProduceOrderDialog
+        open={produceOrderDialogOpen}
+        onClose={() => setProduceOrderDialogOpen(false)}
+        onSuccess={(result) => {
+          setSnackbar({
+            message: `✅ Order created: ${result.message}`,
+            severity: "success"
+          });
+        }}
+        onError={(error) => {
+          setSnackbar({
+            message: `❌ Order failed: ${error}`,
+            severity: "error"
+          });
+        }}
       />
 
       {/* Snackbar */}

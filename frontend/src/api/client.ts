@@ -8,7 +8,7 @@ export class MenurithmAPIClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:8000';
+    this.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:8001';
   }
 
   /**

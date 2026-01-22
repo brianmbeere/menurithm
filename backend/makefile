@@ -42,12 +42,12 @@ run:
 	@echo "Starting FastAPI backend..."
 	@echo ""
 	@echo "🚀 Starting Menurithm Backend Server..."
-	@echo "📍 Main API: http://127.0.0.1:8000"
-	@echo "📚 API Docs: http://127.0.0.1:8000/docs"
-	@echo "📖 ReDoc: http://127.0.0.1:8000/redoc"
+	@echo "📍 Main API: http://127.0.0.1:8001"
+	@echo "📚 API Docs: http://127.0.0.1:8001/docs"
+	@echo "📖 ReDoc: http://127.0.0.1:8001/redoc"
 	@echo "⚡ Auto-reload enabled"
 	@echo ""
-	$(UVICORN) $(APP_MODULE) --reload
+	$(UVICORN) $(APP_MODULE) --reload --port 8001
 
 # Start backend server in production mode (for Render)
 start:

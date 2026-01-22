@@ -349,16 +349,36 @@ class DemandPredictionService:
                 "demo_mode": True,
                 "note": "This is demo data. Configure OpenAI API key for real AI recommendations.",
                 "critical_items": [
-                    {"item": "Demo Item", "reason": "Low stock simulation", "action": "Monitor in real system"}
+                    {"item_name": "Tomatoes", "reason": "Low stock - only 5kg remaining", "action": "Reorder immediately"},
+                    {"item_name": "Chicken Breast", "reason": "High usage item running low", "action": "Place order today"}
                 ],
                 "overstock_items": [
-                    {"item": "Demo Overstock", "reason": "Excess inventory simulation"}
+                    {"item_name": "Olive Oil", "reason": "3 months supply on hand", "current_stock": 15, "unit": "liters"}
                 ],
                 "reorder_recommendations": [
                     {
-                        "item": "Configure OpenAI API",
-                        "reason": "Enable AI-powered inventory recommendations",
-                        "action": "Set OPENAI_API_KEY environment variable"
+                        "item_name": "Tomatoes",
+                        "recommended_quantity": 25,
+                        "unit": "kg",
+                        "estimated_price": 3.50,
+                        "preferred_supplier": "RouteCast Fresh Produce",
+                        "reason": "Stock below minimum threshold"
+                    },
+                    {
+                        "item_name": "Chicken Breast",
+                        "recommended_quantity": 20,
+                        "unit": "kg",
+                        "estimated_price": 8.00,
+                        "preferred_supplier": "RouteCast Meats",
+                        "reason": "High demand item - restock recommended"
+                    },
+                    {
+                        "item_name": "Fresh Herbs",
+                        "recommended_quantity": 5,
+                        "unit": "kg",
+                        "estimated_price": 12.00,
+                        "preferred_supplier": "RouteCast Organic",
+                        "reason": "Weekly restock cycle"
                     }
                 ],
                 "cost_optimization": [

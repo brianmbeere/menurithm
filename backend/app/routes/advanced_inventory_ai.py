@@ -37,9 +37,53 @@ async def get_inventory_analytics(
         # Get inventory recommendations
         recommendations = await demand_service.get_inventory_recommendations(db, user_id)
         
+        # Check if we're in demo mode (OpenAI not configured)
+        is_demo = analytics.get("demo_mode", False) or analytics.get("error")
+        
+        # Return response matching frontend AIAnalytics interface
         return {
-            "success": True,
-            "analytics": analytics,
+            "optimization_score": 75 if is_demo else analytics.get("optimization_score", 80),
+            "cost_savings_potential": "$450/month" if is_demo else analytics.get("cost_savings_potential", "$500/month"),
+            "waste_reduction_percentage": 12 if is_demo else analytics.get("waste_reduction_percentage", 15),
+            "top_cost_saving_opportunities": [
+                {
+                    "item": "Tomatoes",
+                    "potential_savings": "$50/week",
+                    "recommendation": "Switch to local supplier for fresher produce"
+                },
+                {
+                    "item": "Chicken Breast",
+                    "potential_savings": "$75/week",
+                    "recommendation": "Buy in bulk during promotional periods"
+                },
+                {
+                    "item": "Olive Oil",
+                    "potential_savings": "$30/week",
+                    "recommendation": "Consider house brand alternatives"
+                }
+            ] if is_demo else analytics.get("top_cost_saving_opportunities", []),
+            "inventory_turnover_insights": {
+                "fast_moving": ["Chicken", "Rice", "Tomatoes", "Onions"],
+                "slow_moving": ["Truffle Oil", "Saffron", "Aged Parmesan"],
+                "optimal_stock_levels": {
+                    "Chicken": 50,
+                    "Rice": 100,
+                    "Tomatoes": 30,
+                    "Onions": 40
+                }
+            } if is_demo else analytics.get("inventory_turnover_insights", {}),
+            "demand_patterns": {
+                "weekly_peak": "Friday-Saturday",
+                "daily_peak": "18:00-21:00",
+                "trending_up": ["Grilled Salmon", "Caesar Salad"],
+                "trending_down": ["Beef Stew"]
+            } if is_demo else analytics.get("demand_patterns", {}),
+            "seasonal_trends": {
+                "current_season": "Winter",
+                "popular_items": ["Soups", "Stews", "Hot Beverages"],
+                "recommended_additions": ["Seasonal salads", "Light appetizers"]
+            } if is_demo else analytics.get("seasonal_trends", {}),
+            "demo_mode": is_demo,
             "recommendations": recommendations,
             "generated_at": datetime.now().isoformat()
         }
@@ -267,23 +311,68 @@ async def create_auto_order(
         # Get inventory recommendations
         recommendations = await demand_service.get_inventory_recommendations(db, user_id)
         
+        orders_created = []
+        optimization_notes = []
+        
         # Get RouteCast API key and initialize service
         api_key = os.getenv("ROUTECAST_API_KEY")
-        if api_key:
-            routecast_service = RouteCastIntegrationService(db, api_key)
-            # Process auto-orders in background
-            background_tasks.add_task(
-                routecast_service.process_auto_orders,
-                db, user_id, recommendations
-            )
+        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        
+        if api_key and api_key != "your-routecast-api-key-here":
+            routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+            
+            # Get reorder recommendations
+            reorder_items = recommendations.get("reorder_recommendations", [])
+            
+            if reorder_items:
+                # Create orders for items that need reordering
+                for item in reorder_items[:5]:  # Limit to 5 items
+                    order = {
+                        "supplier": item.get("preferred_supplier", "RouteCast Supplier"),
+                        "items": [{
+                            "ingredient": item.get("item_name", "Unknown Item"),
+                            "quantity": item.get("recommended_quantity", 10),
+                            "unit_price": item.get("estimated_price", 5.0),
+                            "total_price": item.get("recommended_quantity", 10) * item.get("estimated_price", 5.0)
+                        }],
+                        "estimated_delivery": "2-3 business days"
+                    }
+                    orders_created.append(order)
+                    optimization_notes.append(f"Ordered {item.get('item_name')}: {item.get('reason', 'Low stock')}")
+                
+                # Process auto-orders in background
+                background_tasks.add_task(
+                    routecast_service.process_auto_orders,
+                    db, user_id, recommendations
+                )
+            else:
+                optimization_notes.append("No items currently need reordering")
         else:
-            # No API key configured, skip auto-orders
-            pass
+            # Demo mode - create sample orders
+            optimization_notes.append("Demo mode: RouteCast integration not configured")
+            orders_created = [
+                {
+                    "supplier": "Demo Supplier",
+                    "items": [
+                        {"ingredient": "Tomatoes", "quantity": 20, "unit_price": 2.5, "total_price": 50.0},
+                        {"ingredient": "Onions", "quantity": 15, "unit_price": 1.5, "total_price": 22.5}
+                    ],
+                    "estimated_delivery": "Demo: 2-3 business days"
+                }
+            ]
+        
+        # Calculate total estimated cost
+        total_cost = sum(
+            sum(item.get("total_price", 0) for item in order.get("items", []))
+            for order in orders_created
+        )
         
         return {
             "success": True,
-            "message": "Auto-order processing initiated",
-            "recommendations": recommendations.get("reorder_recommendations", [])
+            "orders_created": len(orders_created),
+            "total_estimated_cost": total_cost,
+            "orders": orders_created,
+            "optimization_notes": optimization_notes
         }
         
     except Exception as e:
@@ -370,11 +459,36 @@ async def get_inventory_alerts(
                     "type": "low_stock",
                     "priority": "high" if item.current_stock < 5 else "medium",
                     "item_name": item.ingredient_name,
-                    "current_stock": item.current_stock,
                     "message": f"Low stock alert: {item.ingredient_name} has only {item.current_stock} {item.unit} remaining",
-                    "recommended_action": f"Reorder {item.ingredient_name} immediately",
-                    "created_at": datetime.now().isoformat()
+                    "suggested_action": f"Reorder {item.ingredient_name} immediately",
+                    "created_at": datetime.now().isoformat(),
+                    "resolved": False
                 })
+        
+        # Add demo alerts if no inventory data exists
+        if not alerts and not inventory_items:
+            alerts = [
+                {
+                    "id": "demo_alert_1",
+                    "type": "low_stock",
+                    "priority": "high",
+                    "item_name": "Tomatoes",
+                    "message": "Demo: Low stock alert for Tomatoes",
+                    "suggested_action": "Reorder from supplier",
+                    "created_at": datetime.now().isoformat(),
+                    "resolved": False
+                },
+                {
+                    "id": "demo_alert_2",
+                    "type": "expiring_soon",
+                    "priority": "medium",
+                    "item_name": "Fresh Herbs",
+                    "message": "Demo: Fresh Herbs expiring in 2 days",
+                    "suggested_action": "Use in today's specials or freeze",
+                    "created_at": datetime.now().isoformat(),
+                    "resolved": False
+                }
+            ]
         
         # Filter by priority if specified
         if priority:
@@ -388,6 +502,76 @@ async def get_inventory_alerts(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve alerts: {str(e)}")
+
+@router.get("/available-produce")
+async def get_available_produce(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get available produce from RouteCast suppliers"""
+    try:
+        api_key = os.getenv("ROUTECAST_API_KEY")
+        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        
+        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        result = await routecast_service.get_available_produce()
+        
+        return result
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch available produce: {str(e)}")
+
+@router.post("/create-produce-order")
+async def create_produce_order(
+    order_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a produce order through RouteCast"""
+    try:
+        # Validate required fields
+        required_fields = ["restaurant_name", "produce_type", "quantity_needed", "unit", "delivery_address"]
+        for field in required_fields:
+            if field not in order_data or not order_data[field]:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        api_key = os.getenv("ROUTECAST_API_KEY")
+        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        
+        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        result = await routecast_service.create_produce_request(
+            user_id=current_user.firebase_uid,
+            order_data=order_data
+        )
+        
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Failed to create order"))
+        
+        return result
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create produce order: {str(e)}")
+
+@router.get("/produce-request/{request_id}")
+async def get_produce_request_status(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get status of a produce request from RouteCast"""
+    try:
+        api_key = os.getenv("ROUTECAST_API_KEY")
+        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        
+        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        result = await routecast_service.get_request_status(request_id)
+        
+        return result
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get request status: {str(e)}")
 
 @router.post("/optimize")
 async def optimize_inventory(

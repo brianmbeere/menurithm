@@ -24,11 +24,10 @@ class RouteCastIntegrationService:
     async def sync_supplier_catalog(self, user_email: str) -> Dict[str, Any]:
         """Sync supplier catalog from RouteCast"""
         try:
-            # Get supplier products from RouteCast API
+            # Get available produce from RouteCast API
             response = requests.get(
-                f"{self.base_url}/catalog/products",
-                headers=self.headers,
-                params={"user_email": user_email}
+                f"{self.base_url}/produce/available",
+                headers=self.headers
             )
             
             if response.status_code != 200:
@@ -37,24 +36,25 @@ class RouteCastIntegrationService:
                     "message": f"RouteCast API error: {response.status_code}"
                 }
             
-            products = response.json().get("products", [])
+            # RouteCast returns array of produce directly
+            products = response.json() if isinstance(response.json(), list) else response.json().get("products", [])
             synced_items = 0
             
             # Sync products to local database
             for product in products:
                 existing = self.db.query(SupplierCatalog).filter(
-                    SupplierCatalog.supplier_product_id == product.get("id")
+                    SupplierCatalog.supplier_product_id == str(product.get("id"))
                 ).first()
                 
                 if not existing:
                     catalog_item = SupplierCatalog(
-                        supplier_name=product.get("supplier_name"),
-                        product_name=product.get("name"),
-                        supplier_product_id=product.get("id"),
-                        unit_price=product.get("price"),
+                        supplier_name=f"Seller_{product.get('seller_id', 'Unknown')}",
+                        product_name=f"{product.get('produce_type', '')} - {product.get('variety', 'Standard')}",
+                        supplier_product_id=str(product.get("id")),
+                        unit_price=product.get("price_per_unit"),
                         unit_type=product.get("unit"),
-                        availability=product.get("in_stock", True),
-                        minimum_order=product.get("min_order", 1)
+                        availability=product.get("is_available", True),
+                        minimum_order=1
                     )
                     self.db.add(catalog_item)
                     synced_items += 1
@@ -260,25 +260,36 @@ class RouteCastIntegrationService:
             reorder_recommendations = recommendations.get("reorder_recommendations", [])
             created_orders = []
             
+            logger.info(f"Processing {len(reorder_recommendations)} reorder recommendations for user {user_id}")
+            
             for rec in reorder_recommendations:
-                if rec.get("auto_order", False):
-                    # Create automatic order
-                    order_data = {
-                        "user_id": user_id,
-                        "supplier_name": rec.get("preferred_supplier", "Default Supplier"),
-                        "items": [{
-                            "product_name": rec.get("item_name"),
-                            "quantity": rec.get("recommended_quantity", 1),
-                            "unit_price": rec.get("estimated_price", 0),
-                            "unit": rec.get("unit", "units")
-                        }],
-                        "delivery_address": "Restaurant Address",  # This should come from user settings
-                        "notes": f"Auto-generated order based on AI recommendation: {rec.get('reason', '')}"
-                    }
-                    
-                    result = await self.create_purchase_order("", order_data)
-                    if result.get("success"):
-                        created_orders.append(result)
+                # Process all recommendations, not just those with auto_order flag
+                logger.info(f"Creating order for: {rec.get('item_name')}")
+                
+                # Create automatic order
+                order_data = {
+                    "user_id": user_id,
+                    "supplier_name": rec.get("preferred_supplier", "RouteCast Supplier"),
+                    "restaurant_name": "Menurithm Restaurant",
+                    "items": [{
+                        "product_name": rec.get("item_name"),
+                        "quantity": rec.get("recommended_quantity", 10),
+                        "unit_price": rec.get("estimated_price", 5.0),
+                        "unit": rec.get("unit", "kg")
+                    }],
+                    "delivery_address": "Restaurant Address",
+                    "delivery_window": "Next available",
+                    "notes": f"Auto-generated order: {rec.get('reason', 'Low stock')}"
+                }
+                
+                # Make the actual request to RouteCast
+                routecast_result = self._create_routecast_order(order_data)
+                logger.info(f"RouteCast order result: {routecast_result}")
+                
+                if routecast_result.get("success"):
+                    created_orders.append(routecast_result)
+            
+            logger.info(f"Created {len(created_orders)} orders via RouteCast")
             
             return {
                 "success": True,
@@ -298,9 +309,21 @@ class RouteCastIntegrationService:
     def _get_routecast_suppliers(self) -> List[Dict]:
         """Get list of available suppliers from RouteCast"""
         try:
-            response = requests.get(f"{self.base_url}/suppliers", headers=self.headers)
+            # RouteCast uses /produce/available to get sellers
+            response = requests.get(f"{self.base_url}/produce/available", headers=self.headers)
             if response.status_code == 200:
-                return response.json().get("suppliers", [])
+                products = response.json() if isinstance(response.json(), list) else []
+                # Extract unique sellers
+                sellers = {}
+                for product in products:
+                    seller_id = product.get("seller_id")
+                    if seller_id and seller_id not in sellers:
+                        sellers[seller_id] = {
+                            "id": seller_id,
+                            "name": f"Seller_{seller_id}",
+                            "location": product.get("location", "Unknown")
+                        }
+                return list(sellers.values())
             return []
         except Exception as e:
             logger.error(f"Error getting RouteCast suppliers: {str(e)}")
@@ -310,11 +333,12 @@ class RouteCastIntegrationService:
         """Get products from specific supplier"""
         try:
             response = requests.get(
-                f"{self.base_url}/suppliers/{supplier_id}/products",
+                f"{self.base_url}/produce/seller/{supplier_id}",
                 headers=self.headers
             )
             if response.status_code == 200:
-                return response.json().get("products", [])
+                products = response.json() if isinstance(response.json(), list) else response.json().get("products", [])
+                return products
             return []
         except Exception as e:
             logger.error(f"Error getting supplier products: {str(e)}")
@@ -324,59 +348,276 @@ class RouteCastIntegrationService:
         """Search products directly in RouteCast API"""
         try:
             response = requests.get(
-                f"{self.base_url}/products/search",
+                f"{self.base_url}/produce/search",
                 headers=self.headers,
                 params={"q": ingredient_name}
             )
             if response.status_code == 200:
-                return response.json().get("products", [])
+                products = response.json() if isinstance(response.json(), list) else response.json().get("products", [])
+                return products
             return []
         except Exception as e:
             logger.error(f"Error searching RouteCast products: {str(e)}")
             return []
     
-    def _create_routecast_order(self, order_data: Dict) -> Dict:
-        """Create order in RouteCast system"""
+    async def create_produce_request(self, user_id: str, order_data: Dict) -> Dict[str, Any]:
+        """
+        Create a produce request through RouteCast.
+        This is the main public method for creating produce orders.
+        
+        Required fields in order_data:
+        - restaurant_name: str
+        - produce_type: str
+        - quantity_needed: float
+        - unit: str
+        - delivery_address: str
+        - delivery_window_start: str (ISO datetime)
+        - delivery_window_end: str (ISO datetime)
+        
+        Optional fields:
+        - max_price_per_unit: float
+        - special_requirements: str
+        - delivery_latitude: float
+        - delivery_longitude: float
+        """
+        from datetime import timedelta
+        import os
+        
         try:
-            # Transform order data to RouteCast format
-            routecast_order = {
-                "supplier_name": order_data["supplier_name"],
-                "items": order_data["items"],
-                "delivery_address": order_data["delivery_address"],
-                "notes": order_data.get("notes", ""),
-                "requested_delivery_date": order_data.get("expected_delivery")
-            }
+            # Set default delivery windows if not provided (next day, 8am-6pm)
+            now = datetime.now()
+            default_start = (now + timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0)
+            default_end = (now + timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
             
-            response = requests.post(
-                f"{self.base_url}/orders",
-                headers=self.headers,
-                json=routecast_order
-            )
+            delivery_window_start = order_data.get("delivery_window_start") or default_start.isoformat()
+            delivery_window_end = order_data.get("delivery_window_end") or default_end.isoformat()
             
-            if response.status_code == 201:
+            # Check if we're in demo mode
+            if not self.api_key or self.api_key == "your-routecast-api-key-here":
                 return {
                     "success": True,
-                    "order_id": response.json().get("order_id"),
-                    "status": "pending"
+                    "request_id": 999,
+                    "status": "pending",
+                    "message": "Demo order created (configure ROUTECAST_API_KEY for live orders)",
+                    "demo_mode": True,
+                    "order_details": {
+                        "restaurant_name": order_data.get("restaurant_name"),
+                        "produce_type": order_data.get("produce_type"),
+                        "quantity_needed": order_data.get("quantity_needed"),
+                        "unit": order_data.get("unit"),
+                        "delivery_address": order_data.get("delivery_address"),
+                        "delivery_window_start": delivery_window_start,
+                        "delivery_window_end": delivery_window_end
+                    }
+                }
+            
+            # Build the RouteCast MenurithmWebhookRequest payload
+            # Using the webhook endpoint which doesn't require JWT auth
+            request_id = f"menurithm-{user_id}-{int(now.timestamp())}"
+            quantity_str = f"{order_data.get('quantity_needed', 0)} {order_data.get('unit', 'kg')}"
+            
+            # Format delivery window as human-readable string
+            try:
+                start_dt = datetime.fromisoformat(delivery_window_start.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(delivery_window_end.replace('Z', '+00:00'))
+                delivery_window = f"{start_dt.strftime('%Y-%m-%d %H:%M')} - {end_dt.strftime('%H:%M')}"
+            except:
+                delivery_window = f"{delivery_window_start} - {delivery_window_end}"
+            
+            webhook_request = {
+                "request_id": request_id,
+                "restaurant_name": order_data.get("restaurant_name"),
+                "produce_type": order_data.get("produce_type"),
+                "quantity": quantity_str,
+                "delivery_address": order_data.get("delivery_address"),
+                "delivery_window": delivery_window,
+                "special_requirements": order_data.get("special_requirements")
+            }
+            
+            # Remove None values
+            webhook_request = {k: v for k, v in webhook_request.items() if v is not None}
+            
+            logger.info(f"Creating produce request via RouteCast webhook: {webhook_request}")
+            
+            # Send request to RouteCast webhook endpoint (no auth required)
+            response = requests.post(
+                f"{self.base_url}/webhooks/menurithm/request",
+                headers={"Content-Type": "application/json"},
+                json=webhook_request
+            )
+            
+            logger.info(f"RouteCast webhook response: {response.status_code} - {response.text[:500] if response.text else 'No content'}")
+            
+            if response.status_code in [200, 201]:
+                result = response.json() if response.text else {}
+                return {
+                    "success": True,
+                    "request_id": result.get("request_id") or request_id,
+                    "status": result.get("status", "pending"),
+                    "message": f"Produce request sent to RouteCast for {order_data.get('restaurant_name')}",
+                    "demo_mode": False,
+                    "routecast_response": result
                 }
             else:
                 return {
                     "success": False,
-                    "message": f"RouteCast order creation failed: {response.status_code}"
+                    "message": f"RouteCast API error: {response.status_code} - {response.text}",
+                    "status": "failed"
                 }
                 
         except Exception as e:
-            logger.error(f"Error creating RouteCast order: {str(e)}")
+            logger.error(f"Error creating produce request: {str(e)}")
             return {
                 "success": False,
-                "message": f"Failed to create order in RouteCast: {str(e)}"
+                "message": f"Failed to create produce order: {str(e)}",
+                "status": "error"
+            }
+    
+    async def get_available_produce(self) -> Dict[str, Any]:
+        """Get available produce from RouteCast marketplace"""
+        try:
+            # Check if we're in demo mode
+            if not self.api_key or self.api_key == "your-routecast-api-key-here":
+                return {
+                    "success": True,
+                    "produce": [
+                        {"id": 1, "produce_type": "Tomatoes", "variety": "Roma", "quantity_available": 100, "unit": "kg", "price_per_unit": 3.50, "location": "Demo Farm", "organic": True, "is_available": True},
+                        {"id": 2, "produce_type": "Lettuce", "variety": "Iceberg", "quantity_available": 50, "unit": "kg", "price_per_unit": 2.00, "location": "Demo Farm", "organic": False, "is_available": True},
+                        {"id": 3, "produce_type": "Chicken", "variety": "Breast", "quantity_available": 200, "unit": "kg", "price_per_unit": 8.00, "location": "Demo Supplier", "organic": False, "is_available": True},
+                        {"id": 4, "produce_type": "Onions", "variety": "Yellow", "quantity_available": 150, "unit": "kg", "price_per_unit": 1.50, "location": "Demo Farm", "organic": True, "is_available": True},
+                    ],
+                    "demo_mode": True,
+                    "message": "Demo produce data (configure ROUTECAST_API_KEY for live data)"
+                }
+            
+            response = requests.get(
+                f"{self.base_url}/produce/available",
+                headers=self.headers
+            )
+            
+            if response.status_code == 200:
+                produce_list = response.json()
+                return {
+                    "success": True,
+                    "produce": produce_list if isinstance(produce_list, list) else produce_list.get("produce", []),
+                    "demo_mode": False
+                }
+            else:
+                return {
+                    "success": False,
+                    "produce": [],
+                    "message": f"RouteCast API error: {response.status_code}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error fetching available produce: {str(e)}")
+            return {
+                "success": False,
+                "produce": [],
+                "message": f"Failed to fetch produce: {str(e)}"
+            }
+    
+    async def get_request_status(self, request_id: int) -> Dict[str, Any]:
+        """Get status of a produce request from RouteCast"""
+        try:
+            if not self.api_key or self.api_key == "your-routecast-api-key-here":
+                return {
+                    "success": True,
+                    "request_id": request_id,
+                    "status": "pending",
+                    "demo_mode": True
+                }
+            
+            response = requests.get(
+                f"{self.base_url}/requests/{request_id}",
+                headers=self.headers
+            )
+            
+            if response.status_code == 200:
+                return {
+                    "success": True,
+                    "demo_mode": False,
+                    **response.json()
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"RouteCast API error: {response.status_code}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting request status: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Failed to get request status: {str(e)}"
+            }
+    
+    def _create_routecast_order(self, order_data: Dict) -> Dict:
+        """Create produce request in RouteCast system"""
+        try:
+            from datetime import timedelta
+            
+            # Transform order data to RouteCast ProduceRequestCreate format
+            items = order_data.get("items", [])
+            first_item = items[0] if items else {}
+            
+            # Set default delivery windows if not provided (next day, 8am-6pm)
+            now = datetime.now()
+            default_start = (now + timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0)
+            default_end = (now + timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
+            
+            routecast_request = {
+                "restaurant_name": order_data.get("restaurant_name", "Menurithm Restaurant"),
+                "produce_type": first_item.get("product_name", "General Produce"),
+                "quantity_needed": float(sum(item.get("quantity", 0) for item in items)),
+                "unit": first_item.get("unit", "kg"),
+                "delivery_address": order_data.get("delivery_address", "Restaurant Address"),
+                "delivery_window_start": order_data.get("delivery_window_start", default_start.isoformat()),
+                "delivery_window_end": order_data.get("delivery_window_end", default_end.isoformat()),
+                "max_price_per_unit": first_item.get("unit_price"),
+                "special_requirements": order_data.get("notes", ""),
+                "menurithm_request_id": order_data.get("menurithm_request_id")
+            }
+            
+            # Remove None values
+            routecast_request = {k: v for k, v in routecast_request.items() if v is not None}
+            
+            logger.info(f"Sending request to RouteCast: {routecast_request}")
+            
+            # Use RouteCast's requests endpoint
+            response = requests.post(
+                f"{self.base_url}/requests/",
+                headers=self.headers,
+                json=routecast_request
+            )
+            
+            logger.info(f"RouteCast response: {response.status_code} - {response.text[:200] if response.text else 'No content'}")
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                return {
+                    "success": True,
+                    "order_id": result.get("id") or result.get("request_id"),
+                    "status": result.get("status", "pending")
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"RouteCast request creation failed: {response.status_code} - {response.text}"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error creating RouteCast request: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Failed to create request in RouteCast: {str(e)}"
             }
     
     def _get_routecast_order_status(self, routecast_order_id: str) -> Dict:
         """Get order status from RouteCast"""
         try:
             response = requests.get(
-                f"{self.base_url}/orders/{routecast_order_id}",
+                f"{self.base_url}/requests/{routecast_order_id}",
                 headers=self.headers
             )
             if response.status_code == 200:

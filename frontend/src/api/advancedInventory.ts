@@ -514,6 +514,62 @@ export class AdvancedInventoryAPI {
     });
   }
 
+  /**
+   * Get available produce from RouteCast
+   */
+  async getAvailableProduce(): Promise<{ produce: any[] }> {
+    return this.client.authRequest('/api/advanced-inventory/available-produce');
+  }
+
+  /**
+   * Create a produce order through RouteCast
+   */
+  async createProduceOrder(orderData: {
+    restaurant_name: string;
+    produce_type: string;
+    quantity_needed: number;
+    unit: string;
+    delivery_address: string;
+    delivery_window_start: string;
+    delivery_window_end: string;
+    max_price_per_unit?: number;
+    special_requirements?: string;
+    organic_preferred?: boolean;
+  }): Promise<{
+    success: boolean;
+    request_id: number;
+    status: string;
+    message: string;
+    demo_mode?: boolean;
+    order_details?: {
+      restaurant_name: string;
+      produce_type: string;
+      quantity_needed: number;
+      unit: string;
+      delivery_address: string;
+      delivery_window_start: string;
+      delivery_window_end: string;
+    };
+  }> {
+    return this.client.authRequest('/api/advanced-inventory/create-produce-order', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  /**
+   * Get status of a produce request from RouteCast
+   */
+  async getProduceRequestStatus(requestId: number): Promise<{
+    success: boolean;
+    request_id: number;
+    status: string;
+    demo_mode?: boolean;
+    message?: string;
+  }> {
+    return this.client.authRequest(`/api/advanced-inventory/produce-request/${requestId}`);
+  }
+
 }
 
 // Singleton instance
