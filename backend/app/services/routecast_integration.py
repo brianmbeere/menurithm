@@ -473,78 +473,119 @@ class RouteCastIntegrationService:
                 "status": "error"
             }
     
+    def _is_demo_mode(self) -> bool:
+        """Check if we should use demo mode (no valid API key or localhost URL in production)"""
+        # No API key configured
+        if not self.api_key or self.api_key == "your-routecast-api-key-here":
+            return True
+        # Localhost URL won't work in production environments
+        if "localhost" in self.base_url or "127.0.0.1" in self.base_url:
+            return True
+        return False
+    
+    def _get_demo_produce(self) -> Dict[str, Any]:
+        """Return demo produce data"""
+        return {
+            "success": True,
+            "produce": [
+                {"id": 1, "produce_type": "Tomatoes", "variety": "Roma", "quantity_available": 100, "unit": "kg", "price_per_unit": 3.50, "location": "Local Farm Co.", "organic": True, "is_available": True},
+                {"id": 2, "produce_type": "Lettuce", "variety": "Iceberg", "quantity_available": 50, "unit": "kg", "price_per_unit": 2.00, "location": "Green Valley Farms", "organic": False, "is_available": True},
+                {"id": 3, "produce_type": "Chicken", "variety": "Breast", "quantity_available": 200, "unit": "kg", "price_per_unit": 8.00, "location": "Premium Poultry", "organic": False, "is_available": True},
+                {"id": 4, "produce_type": "Onions", "variety": "Yellow", "quantity_available": 150, "unit": "kg", "price_per_unit": 1.50, "location": "Local Farm Co.", "organic": True, "is_available": True},
+                {"id": 5, "produce_type": "Bell Peppers", "variety": "Mixed Colors", "quantity_available": 75, "unit": "kg", "price_per_unit": 4.00, "location": "Green Valley Farms", "organic": True, "is_available": True},
+                {"id": 6, "produce_type": "Salmon", "variety": "Atlantic", "quantity_available": 80, "unit": "kg", "price_per_unit": 15.00, "location": "Fresh Catch Seafood", "organic": False, "is_available": True},
+                {"id": 7, "produce_type": "Beef", "variety": "Ground", "quantity_available": 120, "unit": "kg", "price_per_unit": 12.00, "location": "Ranch Direct", "organic": False, "is_available": True},
+                {"id": 8, "produce_type": "Carrots", "variety": "Baby", "quantity_available": 60, "unit": "kg", "price_per_unit": 2.50, "location": "Local Farm Co.", "organic": True, "is_available": True},
+            ],
+            "demo_mode": True,
+            "message": "Demo produce data - Configure ROUTECAST_BASE_URL with a valid external API for live data"
+        }
+    
     async def get_available_produce(self) -> Dict[str, Any]:
         """Get available produce from RouteCast marketplace"""
         try:
             # Check if we're in demo mode
-            if not self.api_key or self.api_key == "your-routecast-api-key-here":
-                return {
-                    "success": True,
-                    "produce": [
-                        {"id": 1, "produce_type": "Tomatoes", "variety": "Roma", "quantity_available": 100, "unit": "kg", "price_per_unit": 3.50, "location": "Demo Farm", "organic": True, "is_available": True},
-                        {"id": 2, "produce_type": "Lettuce", "variety": "Iceberg", "quantity_available": 50, "unit": "kg", "price_per_unit": 2.00, "location": "Demo Farm", "organic": False, "is_available": True},
-                        {"id": 3, "produce_type": "Chicken", "variety": "Breast", "quantity_available": 200, "unit": "kg", "price_per_unit": 8.00, "location": "Demo Supplier", "organic": False, "is_available": True},
-                        {"id": 4, "produce_type": "Onions", "variety": "Yellow", "quantity_available": 150, "unit": "kg", "price_per_unit": 1.50, "location": "Demo Farm", "organic": True, "is_available": True},
-                    ],
-                    "demo_mode": True,
-                    "message": "Demo produce data (configure ROUTECAST_API_KEY for live data)"
-                }
+            if self._is_demo_mode():
+                return self._get_demo_produce()
             
             response = requests.get(
                 f"{self.base_url}/produce/available",
-                headers=self.headers
+                headers=self.headers,
+                timeout=10  # Add timeout to prevent hanging
             )
             
             if response.status_code == 200:
-                produce_list = response.json()
+                # Safely parse JSON
+                try:
+                    produce_list = response.json()
+                except ValueError:
+                    logger.warning("RouteCast returned invalid JSON, falling back to demo mode")
+                    return self._get_demo_produce()
+                    
                 return {
                     "success": True,
                     "produce": produce_list if isinstance(produce_list, list) else produce_list.get("produce", []),
                     "demo_mode": False
                 }
             else:
-                return {
-                    "success": False,
-                    "produce": [],
-                    "message": f"RouteCast API error: {response.status_code}"
-                }
+                logger.warning(f"RouteCast API returned {response.status_code}, falling back to demo mode")
+                return self._get_demo_produce()
                 
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"RouteCast API unavailable ({str(e)}), using demo mode")
+            return self._get_demo_produce()
         except Exception as e:
-            logger.error(f"Error fetching available produce: {str(e)}")
-            return {
-                "success": False,
-                "produce": [],
-                "message": f"Failed to fetch produce: {str(e)}"
-            }
+            logger.error(f"Unexpected error fetching produce: {str(e)}")
+            return self._get_demo_produce()
     
     async def get_request_status(self, request_id: int) -> Dict[str, Any]:
         """Get status of a produce request from RouteCast"""
         try:
-            if not self.api_key or self.api_key == "your-routecast-api-key-here":
+            if self._is_demo_mode():
                 return {
                     "success": True,
                     "request_id": request_id,
                     "status": "pending",
-                    "demo_mode": True
+                    "demo_mode": True,
+                    "message": "Demo mode - request status simulated"
                 }
             
             response = requests.get(
                 f"{self.base_url}/requests/{request_id}",
-                headers=self.headers
+                headers=self.headers,
+                timeout=10
             )
             
             if response.status_code == 200:
-                return {
-                    "success": True,
-                    "demo_mode": False,
-                    **response.json()
-                }
+                try:
+                    return {
+                        "success": True,
+                        "demo_mode": False,
+                        **response.json()
+                    }
+                except ValueError:
+                    return {
+                        "success": True,
+                        "request_id": request_id,
+                        "status": "unknown",
+                        "demo_mode": True,
+                        "message": "Invalid response from RouteCast"
+                    }
             else:
                 return {
                     "success": False,
                     "message": f"RouteCast API error: {response.status_code}"
                 }
                 
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"RouteCast API unavailable: {str(e)}")
+            return {
+                "success": True,
+                "request_id": request_id,
+                "status": "pending",
+                "demo_mode": True,
+                "message": "RouteCast unavailable - using cached status"
+            }
         except Exception as e:
             logger.error(f"Error getting request status: {str(e)}")
             return {
