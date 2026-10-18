@@ -60,11 +60,11 @@ nameserver and security records:
 | CNAME | api | menurithm-core.onrender.com |
 
 DNS is verified for all three hosts, and website HTTPS and the www redirect work.
-The API domain's certificate is still pending. Keep
-`VITE_BASE_URL=https://menurithm-core.onrender.com` until
-`https://api.menurithm.com` has a valid certificate and passes API/CORS checks.
-Then change it to the custom API URL, rebuild, and update cross-app and portfolio
-links. The website's primary address is now `https://menurithm.com`;
+The API certificate and health endpoint are verified.
+`VITE_BASE_URL=https://api.menurithm.com` selects the custom API in production
+builds. Croprithm's integration uses the new hostname with its existing path
+unchanged, and portfolio links use the new domains.
+The website's primary address is now `https://menurithm.com`;
 the assigned Render URLs remain available during this staged transition.
 Render custom-domain quota charges can apply even though static compute is free.
 
@@ -77,14 +77,14 @@ Do not manage the same static site with both manual settings and a separate
 Blueprint without first importing/reconciling the resource.
 
 Copy the existing frontend's `VITE_*` variables as **build-time** settings,
-including `VITE_BASE_URL=https://menurithm-core.onrender.com` and Firebase web
+including `VITE_BASE_URL=https://api.menurithm.com` and Firebase web
 configuration. Rebuild after changing them. Production builds fail explicitly
 if required API/Firebase settings are missing or the API URL is not HTTPS.
 For a local production build, override a localhost development URL:
 
 ```bash
 cd frontend
-VITE_BASE_URL=https://menurithm-core.onrender.com npm run build
+VITE_BASE_URL=https://api.menurithm.com npm run build
 ```
 
 Everything prefixed `VITE_` is public in the browser bundle. Never include a
@@ -122,7 +122,7 @@ applications were verified.
 | --- | --- |
 | Menurithm frontend | https://menurithm.com (menurithm.onrender.com compatibility hostname) |
 | Croprithm frontend | https://croprithm.com (free static site; croprithm.onrender.com fallback) |
-| Menurithm API | https://menurithm-core.onrender.com |
+| Menurithm API | https://api.menurithm.com (menurithm-core.onrender.com compatibility hostname) |
 | Croprithm API | https://api.croprithm.com (routecast-core.onrender.com compatibility hostname) |
 | Active Postgres | `shared-pilot-postgres`, Basic 256 MB, 5 GB allocated |
 | Shared infrastructure project | `Shared Infrastructure` / `Production` |
