@@ -42,6 +42,30 @@ Postgres instance, see the [database deployment guide](backend/app/db/README.md#
 
 ### Cost-optimized Render deployment
 
+#### Menurithm custom-domain rollout
+
+The existing static site has `menurithm.com` attached, with
+`www.menurithm.com` redirecting to the root. The existing API has
+`api.menurithm.com` attached. No additional service is required.
+Firebase authorized domains and backend CORS include both new website origins,
+while retaining the working Render origins.
+
+Configure these records in GoDaddy, preserving unrelated mail, verification,
+nameserver and security records:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| A | @ | 216.24.57.1 |
+| CNAME | www | menurithm.onrender.com |
+| CNAME | api | menurithm-core.onrender.com |
+
+Replace conflicting parking records for these hosts. DNS and HTTPS verification
+are still pending. Keep `VITE_BASE_URL=https://menurithm-core.onrender.com` until
+`https://api.menurithm.com` has a valid certificate and passes API/CORS checks.
+Then change it to the custom API URL, rebuild, and update cross-app and portfolio
+links. The assigned Render URLs remain available during this staged transition.
+Render custom-domain quota charges can apply even though static compute is free.
+
 The React frontend is a browser-only Vite SPA and needs no Node server in
 production. [`render.yaml`](render.yaml) defines a free static site named
 `menurithm`: root `frontend`, build `npm ci --include=dev && npm run build`,
