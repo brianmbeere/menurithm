@@ -515,14 +515,14 @@ export class AdvancedInventoryAPI {
   }
 
   /**
-   * Get available produce from RouteCast
+   * Get available produce from Croprithm
    */
   async getAvailableProduce(): Promise<{ produce: any[] }> {
     return this.client.authRequest('/api/advanced-inventory/available-produce');
   }
 
   /**
-   * Create a produce order through RouteCast
+   * Create a produce order through Croprithm
    */
   async createProduceOrder(orderData: {
     restaurant_name: string;
@@ -558,7 +558,7 @@ export class AdvancedInventoryAPI {
   }
 
   /**
-   * Get status of a produce request from RouteCast
+   * Get status of a produce request from Croprithm
    */
   async getProduceRequestStatus(requestId: number): Promise<{
     success: boolean;

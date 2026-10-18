@@ -62,7 +62,7 @@ async def root():
         "features": [
             "🤖 AI-powered demand prediction",
             "🎤 Voice inventory updates",  
-            "🔗 Supplier integration (RouteCast)",
+            "🔗 Supplier integration (Croprithm)",
             "📊 Real-time analytics and optimization",
             "🛒 Smart reorder recommendations",
             "🔐 Role-based access control",

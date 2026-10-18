@@ -27,7 +27,8 @@ from app.models.inventory import InventoryItem
 from app.models.sales import Sale
 from app.services.demand_prediction import DemandPredictionService
 from app.services.voice_inventory import VoiceInventoryService, SPEECH_RECOGNITION_AVAILABLE
-from app.services.routecast_integration import RouteCastIntegrationService
+from app.services.croprithm_integration import CroprithmIntegrationService
+from app.core.croprithm_config import get_croprithm_api_key, get_croprithm_base_url
 
 router = APIRouter(prefix="/api/advanced-inventory", tags=["Advanced Inventory"])
 
@@ -286,20 +287,20 @@ async def get_suppliers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get available suppliers from RouteCast integration"""
+    """Get available suppliers from Croprithm integration"""
     try:
         user_id = current_user.firebase_uid
         
-        # Get RouteCast API key from environment
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        # Get Croprithm API key from environment
+        api_key = get_croprithm_api_key()
         if not api_key:
             return {
                 "success": True,
                 "suppliers": [],
-                "message": "RouteCast integration not configured"
+                "message": "Croprithm integration not configured"
             }
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         suppliers = await routecast_service.get_suppliers(db, user_id)
         
         return {
@@ -329,12 +330,12 @@ async def create_auto_order(
         orders_created = []
         optimization_notes = []
         
-        # Get RouteCast API key and initialize service
-        api_key = os.getenv("ROUTECAST_API_KEY")
-        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        # Get Croprithm API key and initialize service
+        api_key = get_croprithm_api_key()
+        base_url = get_croprithm_base_url()
         
         if api_key and api_key != "your-routecast-api-key-here":
-            routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+            routecast_service = CroprithmIntegrationService(db, api_key, base_url)
             
             # Get reorder recommendations
             reorder_items = recommendations.get("reorder_recommendations", [])
@@ -343,7 +344,7 @@ async def create_auto_order(
                 # Create orders for items that need reordering
                 for item in reorder_items[:5]:  # Limit to 5 items
                     order = {
-                        "supplier": item.get("preferred_supplier", "RouteCast Supplier"),
+                        "supplier": item.get("preferred_supplier", "Croprithm Supplier"),
                         "items": [{
                             "ingredient": item.get("item_name", "Unknown Item"),
                             "quantity": item.get("recommended_quantity", 10),
@@ -364,7 +365,7 @@ async def create_auto_order(
                 optimization_notes.append("No items currently need reordering")
         else:
             # Demo mode - create sample orders
-            optimization_notes.append("Demo mode: RouteCast integration not configured")
+            optimization_notes.append("Demo mode: Croprithm integration not configured")
             orders_created = [
                 {
                     "supplier": "Demo Supplier",
@@ -409,10 +410,10 @@ async def get_optimization_report(
         analytics_task = demand_service.analyze_sales_patterns(db, user_id)
         recommendations_task = demand_service.get_inventory_recommendations(db, user_id)
         
-        # Get suppliers if RouteCast is configured
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        # Get suppliers if Croprithm is configured
+        api_key = get_croprithm_api_key()
         if api_key:
-            routecast_service = RouteCastIntegrationService(db, api_key)
+            routecast_service = CroprithmIntegrationService(db, api_key)
             suppliers_task = routecast_service.get_suppliers(db, user_id)
             
             # Run tasks concurrently
@@ -429,7 +430,7 @@ async def get_optimization_report(
                 recommendations_task,
                 return_exceptions=True
             )
-            suppliers = {"error": "RouteCast integration not configured"}
+            suppliers = {"error": "Croprithm integration not configured"}
         
         # Handle any exceptions
         report = {
@@ -523,12 +524,12 @@ async def get_available_produce(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get available produce from RouteCast suppliers"""
+    """Get available produce from Croprithm suppliers"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
-        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        api_key = get_croprithm_api_key()
+        base_url = get_croprithm_base_url()
         
-        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        routecast_service = CroprithmIntegrationService(db, api_key, base_url)
         result = await routecast_service.get_available_produce()
         
         return result
@@ -542,15 +543,15 @@ async def create_produce_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a produce order through RouteCast"""
+    """Create a produce order through Croprithm"""
     try:
         # Convert Pydantic model to dict for service
         order_dict = order_data.model_dump()
         
-        api_key = os.getenv("ROUTECAST_API_KEY")
-        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        api_key = get_croprithm_api_key()
+        base_url = get_croprithm_base_url()
         
-        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        routecast_service = CroprithmIntegrationService(db, api_key, base_url)
         result = await routecast_service.create_produce_request(
             user_id=current_user.firebase_uid,
             order_data=order_dict
@@ -572,12 +573,12 @@ async def get_produce_request_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get status of a produce request from RouteCast"""
+    """Get status of a produce request from Croprithm"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
-        base_url = os.getenv("ROUTECAST_BASE_URL", "http://localhost:8000/api")
+        api_key = get_croprithm_api_key()
+        base_url = get_croprithm_base_url()
         
-        routecast_service = RouteCastIntegrationService(db, api_key, base_url)
+        routecast_service = CroprithmIntegrationService(db, api_key, base_url)
         result = await routecast_service.get_request_status(request_id)
         
         return result
@@ -622,10 +623,10 @@ async def run_optimization_process(db: Session, user_id: str):
         
         # Process any automatic orders if enabled
         if recommendations.get("reorder_recommendations"):
-            # Get RouteCast API key and initialize service
-            api_key = os.getenv("ROUTECAST_API_KEY")
+            # Get Croprithm API key and initialize service
+            api_key = get_croprithm_api_key()
             if api_key:
-                routecast_service = RouteCastIntegrationService(db, api_key)
+                routecast_service = CroprithmIntegrationService(db, api_key)
                 await routecast_service.process_auto_orders(db, user_id, recommendations)
         
         print(f"Optimization completed for user {user_id}")

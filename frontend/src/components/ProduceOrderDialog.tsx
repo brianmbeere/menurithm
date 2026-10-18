@@ -84,7 +84,7 @@ export const ProduceOrderDialog: React.FC<ProduceOrderDialogProps> = ({
       setAvailableProduce(result.produce || []);
     } catch (err) {
       console.error('Failed to fetch available produce:', err);
-      setError('Failed to load available produce from RouteCast');
+      setError('Failed to load available produce from Croprithm');
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ export const ProduceOrderDialog: React.FC<ProduceOrderDialogProps> = ({
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           🥬 Create Produce Order
-          <Chip label="RouteCast" size="small" color="success" variant="outlined" />
+          <Chip label="Croprithm" size="small" color="success" variant="outlined" />
         </Box>
       </DialogTitle>
       <DialogContent>
@@ -347,7 +347,7 @@ export const ProduceOrderDialog: React.FC<ProduceOrderDialogProps> = ({
             {availableProduce.length > 0 && (
               <Grid columns={12}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
-                  Available from RouteCast Suppliers ({availableProduce.length} items)
+                  Available from Croprithm Suppliers ({availableProduce.length} items)
                 </Typography>
                 <Box display="flex" flexWrap="wrap" gap={1}>
                   {availableProduce.slice(0, 10).map((p) => (

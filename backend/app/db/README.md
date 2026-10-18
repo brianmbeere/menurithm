@@ -117,7 +117,7 @@ credentials, but change the URL's database path:
 # Menurithm service
 DATABASE_URL=postgresql://USER:PASSWORD@INTERNAL_HOST:5432/menurithm_pilot
 
-# Routecast service
+# Croprithm service
 DATABASE_URL=postgresql://USER:PASSWORD@INTERNAL_HOST:5432/routecast_pilot
 ```
 
@@ -134,7 +134,7 @@ An empty/invalid name, a non-Postgres override, or a conflicting `dbname` query
 parameter fails explicitly. Without `DB_NAME`, the URL's database is unchanged.
 Legacy `postgres://` URLs are normalized to `postgresql://`.
 
-Routecast's sibling repository has the same override and pool configuration:
+Croprithm's sibling repository has the same override and pool configuration:
 set `DB_NAME=routecast_pilot` there, or use its unique full URL with DB_NAME unset.
 Set service-specific names on each service, not in a shared environment group
 that would accidentally give both services the same database.
@@ -160,10 +160,10 @@ migration is needed:
 python app/db/migrate_database.py
 ```
 
-Routecast's `backend/migrate_db.py` imports its central engine and therefore
+Croprithm's `backend/migrate_db.py` imports its central engine and therefore
 inherits the same DB_NAME and pool settings. Run `python migrate_db.py` from
-Routecast's backend directory to create its missing tables before serving traffic.
-Unlike Menurithm, Routecast's main module does not create tables at startup.
+Croprithm's backend directory to create its missing tables before serving traffic.
+Unlike Menurithm, Croprithm's main module does not create tables at startup.
 Neither `create_all` call updates existing table columns.
 
 The repository contains Alembic revision files but no complete Alembic environment;
@@ -195,7 +195,7 @@ finally:
 PY
 ```
 
-Expect `menurithm_pilot` on this API and `routecast_pilot` on Routecast.
+Expect `menurithm_pilot` on this API and `routecast_pilot` on Croprithm.
 The existing HTTP `/health` endpoint does not check the database.
 
 ### 4. Pooling on a small instance

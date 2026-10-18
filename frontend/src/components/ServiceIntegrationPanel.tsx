@@ -67,9 +67,9 @@ const UNITS = ['kg', 'lbs', 'units', 'liters', 'bunches', 'boxes', 'crates'];
 const ServiceIntegrationPanel: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   
-  // RouteCast integration status
-  const [routecastConnected, setRoutecastConnected] = useState<boolean | null>(null);
-  const [routecastDemoMode, setRoutecastDemoMode] = useState(false);
+  // Croprithm integration status
+  const [routecastConnected, setCroprithmConnected] = useState<boolean | null>(null);
+  const [routecastDemoMode, setCroprithmDemoMode] = useState(false);
   
   // Dish creation
   const [dishData, setDishData] = useState<ServiceDish>(serviceIntegrationAPI.createDishTemplate());
@@ -77,10 +77,10 @@ const ServiceIntegrationPanel: React.FC = () => {
   const [createResult, setCreateResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // RouteCast Produce
-  const [routecastLoading, setRoutecastLoading] = useState(false);
-  const [routecastError, setRoutecastError] = useState<string | null>(null);
-  const [routecastSuccess, setRoutecastSuccess] = useState<string | null>(null);
+  // Croprithm Produce
+  const [routecastLoading, setCroprithmLoading] = useState(false);
+  const [routecastError, setCroprithmError] = useState<string | null>(null);
+  const [routecastSuccess, setCroprithmSuccess] = useState<string | null>(null);
   const [availableProduce, setAvailableProduce] = useState<ProduceItem[]>([]);
   const [recentOrders, setRecentOrders] = useState<ProduceOrder[]>([]);
   
@@ -111,57 +111,57 @@ const ServiceIntegrationPanel: React.FC = () => {
   }, [tabValue]);
 
   const checkIntegrationStatus = async () => {
-    // Check RouteCast integration
+    // Check Croprithm integration
     try {
       const result = await advancedInventoryAPI.getAvailableProduce() as any;
-      setRoutecastConnected(true);
-      setRoutecastDemoMode(result.demo_mode || false);
+      setCroprithmConnected(true);
+      setCroprithmDemoMode(result.demo_mode || false);
       setAvailableProduce(result.produce || []);
     } catch {
-      setRoutecastConnected(false);
+      setCroprithmConnected(false);
     }
   };
 
   const fetchAvailableProduce = async () => {
     try {
-      setRoutecastLoading(true);
-      setRoutecastError(null);
+      setCroprithmLoading(true);
+      setCroprithmError(null);
       const result = await advancedInventoryAPI.getAvailableProduce();
       setAvailableProduce(result.produce || []);
     } catch (err) {
-      setRoutecastError(err instanceof Error ? err.message : 'Failed to fetch produce');
+      setCroprithmError(err instanceof Error ? err.message : 'Failed to fetch produce');
     } finally {
-      setRoutecastLoading(false);
+      setCroprithmLoading(false);
     }
   };
 
   const handleCreateProduceOrder = async () => {
     // Validation
     if (!restaurantName.trim()) {
-      setRoutecastError('Restaurant name is required');
+      setCroprithmError('Restaurant name is required');
       return;
     }
     if (!produceType.trim()) {
-      setRoutecastError('Produce type is required');
+      setCroprithmError('Produce type is required');
       return;
     }
     if (quantity <= 0) {
-      setRoutecastError('Quantity must be greater than 0');
+      setCroprithmError('Quantity must be greater than 0');
       return;
     }
     if (!deliveryAddress.trim()) {
-      setRoutecastError('Delivery address is required');
+      setCroprithmError('Delivery address is required');
       return;
     }
     if (!deliveryWindowStart || !deliveryWindowEnd) {
-      setRoutecastError('Delivery window is required');
+      setCroprithmError('Delivery window is required');
       return;
     }
 
     try {
-      setRoutecastLoading(true);
-      setRoutecastError(null);
-      setRoutecastSuccess(null);
+      setCroprithmLoading(true);
+      setCroprithmError(null);
+      setCroprithmSuccess(null);
 
       // Save for future use
       localStorage.setItem('menurithm_restaurant_name', restaurantName);
@@ -182,7 +182,7 @@ const ServiceIntegrationPanel: React.FC = () => {
       const result = await advancedInventoryAPI.createProduceOrder(orderData);
       
       if (result.success) {
-        setRoutecastSuccess(`✅ Order created! Request ID: ${result.request_id} - ${result.message}`);
+        setCroprithmSuccess(`✅ Order created! Request ID: ${result.request_id} - ${result.message}`);
         // Add to recent orders
         setRecentOrders(prev => [{
           request_id: result.request_id,
@@ -199,12 +199,12 @@ const ServiceIntegrationPanel: React.FC = () => {
         setMaxPricePerUnit('');
         setSpecialRequirements('');
       } else {
-        setRoutecastError(result.message || 'Failed to create order');
+        setCroprithmError(result.message || 'Failed to create order');
       }
     } catch (err) {
-      setRoutecastError(err instanceof Error ? err.message : 'Failed to create order');
+      setCroprithmError(err instanceof Error ? err.message : 'Failed to create order');
     } finally {
-      setRoutecastLoading(false);
+      setCroprithmLoading(false);
     }
   };
 
@@ -264,7 +264,7 @@ const ServiceIntegrationPanel: React.FC = () => {
       
       {/* Integration Status Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {/* RouteCast Integration */}
+        {/* Croprithm Integration */}
         <Grid columns={{ xs: 12, sm: 6, md: 4 }}>
           <Card 
             sx={{ 
@@ -276,7 +276,7 @@ const ServiceIntegrationPanel: React.FC = () => {
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
-                    RouteCast
+                    Croprithm
                   </Typography>
                   <Typography variant="h6">
                     Produce Supplier
@@ -357,18 +357,18 @@ const ServiceIntegrationPanel: React.FC = () => {
       {/* Tabs for different integrations */}
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
-          <Tab label="🥬 RouteCast Produce" />
+          <Tab label="🥬 Croprithm Produce" />
           <Tab label="🍽️ Service Dish Creation" />
         </Tabs>
       </Paper>
 
-      {/* RouteCast Produce Tab */}
+      {/* Croprithm Produce Tab */}
       <TabPanel value={tabValue} index={0}>
         <Paper sx={{ p: 3, mb: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">
-              RouteCast Produce Requests
-              <Chip label="RouteCast" size="small" color="success" variant="outlined" sx={{ ml: 1 }} />
+              Croprithm Produce Requests
+              <Chip label="Croprithm" size="small" color="success" variant="outlined" sx={{ ml: 1 }} />
             </Typography>
             <Button variant="outlined" onClick={fetchAvailableProduce} disabled={routecastLoading}>
               Refresh Produce
@@ -376,13 +376,13 @@ const ServiceIntegrationPanel: React.FC = () => {
           </Box>
 
           {routecastError && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setRoutecastError(null)}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setCroprithmError(null)}>
               {routecastError}
             </Alert>
           )}
 
           {routecastSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setRoutecastSuccess(null)}>
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setCroprithmSuccess(null)}>
               {routecastSuccess}
             </Alert>
           )}

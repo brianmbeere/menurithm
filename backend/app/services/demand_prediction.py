@@ -361,7 +361,7 @@ class DemandPredictionService:
                         "recommended_quantity": 25,
                         "unit": "kg",
                         "estimated_price": 3.50,
-                        "preferred_supplier": "RouteCast Fresh Produce",
+                        "preferred_supplier": "Croprithm Fresh Produce",
                         "reason": "Stock below minimum threshold"
                     },
                     {
@@ -369,7 +369,7 @@ class DemandPredictionService:
                         "recommended_quantity": 20,
                         "unit": "kg",
                         "estimated_price": 8.00,
-                        "preferred_supplier": "RouteCast Meats",
+                        "preferred_supplier": "Croprithm Meats",
                         "reason": "High demand item - restock recommended"
                     },
                     {
@@ -377,7 +377,7 @@ class DemandPredictionService:
                         "recommended_quantity": 5,
                         "unit": "kg",
                         "estimated_price": 12.00,
-                        "preferred_supplier": "RouteCast Organic",
+                        "preferred_supplier": "Croprithm Organic",
                         "reason": "Weekly restock cycle"
                     }
                 ],

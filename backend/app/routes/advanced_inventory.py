@@ -5,7 +5,8 @@ from app.utils.auth import get_current_user
 from app.models.user import User
 from app.services.demand_prediction import DemandPredictionService
 from app.services.voice_inventory import VoiceInventoryService, VoiceCommandProcessor
-from app.services.routecast_integration import RouteCastIntegrationService
+from app.services.croprithm_integration import CroprithmIntegrationService
+from app.core.croprithm_config import get_croprithm_api_key
 from app.models.inventory_enhanced import InventoryItemEnhanced, DishPrediction, StockMovement
 from typing import List, Dict
 from datetime import datetime
@@ -169,22 +170,22 @@ async def upload_enhanced_csv(
         logger.error(f"Enhanced CSV upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"CSV processing failed: {str(e)}")
 
-# RouteCast Integration Endpoints
+# Croprithm Integration Endpoints
 
 @router.post("/suppliers/sync-catalog")
 async def sync_supplier_catalog(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """Sync supplier catalog from RouteCast"""
+    """Sync supplier catalog from Croprithm"""
     try:
-        # Get RouteCast API key from user settings or environment
-        api_key = os.getenv("ROUTECAST_API_KEY")  # In production, get from user settings
+        # Get Croprithm API key from user settings or environment
+        api_key = get_croprithm_api_key()  # In production, get from user settings
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast API key not configured")
+            raise HTTPException(status_code=400, detail="Croprithm API key not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.sync_supplier_catalog(user.email)
         
         return result
@@ -200,7 +201,7 @@ async def search_supplier_products(
 ):
     """Search for ingredient availability from suppliers"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
             # Return empty results if no API key
@@ -208,10 +209,10 @@ async def search_supplier_products(
                 "success": True,
                 "ingredient_name": ingredient_name,
                 "suppliers": [],
-                "message": "RouteCast integration not configured"
+                "message": "Croprithm integration not configured"
             }
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         suppliers = routecast_service.check_ingredient_availability(user.email, ingredient_name)
         
         return {
@@ -231,12 +232,12 @@ async def create_purchase_order(
 ):
     """Create purchase order with supplier"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast integration not configured")
+            raise HTTPException(status_code=400, detail="Croprithm integration not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.create_purchase_order(user.email, order_data)
         
         return result
@@ -289,12 +290,12 @@ async def confirm_delivery(
 ):
     """Confirm delivery and update inventory"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast integration not configured")
+            raise HTTPException(status_code=400, detail="Croprithm integration not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.process_delivery_confirmation(
             user.email, 
             order_id, 
@@ -500,22 +501,22 @@ async def get_voice_command_examples():
         ]
     }
 
-# RouteCast Integration Endpoints
+# Croprithm Integration Endpoints
 
 @router.post("/suppliers/sync-catalog")
 async def sync_supplier_catalog(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    """Sync supplier catalog from RouteCast"""
+    """Sync supplier catalog from Croprithm"""
     try:
-        # Get RouteCast API key from user settings or environment
-        api_key = os.getenv("ROUTECAST_API_KEY")  # In production, get from user settings
+        # Get Croprithm API key from user settings or environment
+        api_key = get_croprithm_api_key()  # In production, get from user settings
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast API key not configured")
+            raise HTTPException(status_code=400, detail="Croprithm API key not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.sync_supplier_catalog(user.email)
         
         return result
@@ -532,7 +533,7 @@ async def search_supplier_products(
 ):
     """Search for ingredient availability from suppliers"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
             # Return empty results if no API key
@@ -540,10 +541,10 @@ async def search_supplier_products(
                 "success": True,
                 "ingredient_name": ingredient_name,
                 "suppliers": [],
-                "message": "RouteCast integration not configured"
+                "message": "Croprithm integration not configured"
             }
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         suppliers = routecast_service.check_ingredient_availability(user.email, ingredient_name)
         
         return {
@@ -565,12 +566,12 @@ async def create_supplier_order(
 ):
     """Create purchase order with supplier"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast integration not configured")
+            raise HTTPException(status_code=400, detail="Croprithm integration not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.create_purchase_order(user.email, order_data)
         
         return result
@@ -627,12 +628,12 @@ async def confirm_delivery(
 ):
     """Confirm delivery and update inventory"""
     try:
-        api_key = os.getenv("ROUTECAST_API_KEY")
+        api_key = get_croprithm_api_key()
         
         if not api_key:
-            raise HTTPException(status_code=400, detail="RouteCast integration not configured")
+            raise HTTPException(status_code=400, detail="Croprithm integration not configured")
         
-        routecast_service = RouteCastIntegrationService(db, api_key)
+        routecast_service = CroprithmIntegrationService(db, api_key)
         result = routecast_service.process_delivery_confirmation(
             user.email, 
             order_id, 

@@ -11,9 +11,27 @@ Menurithm processes operational data such as inventory levels and historical usa
 - Inventory-aware menu planning
 - Historical usage and demand trend analysis
 - Decision-support dashboards for operators
-- Integration with external supply coordination systems (e.g., Routecast)
+- Integration with external supply coordination systems (e.g., Croprithm)
 
 ## Architecture (High-Level)
+
+### Croprithm integration naming
+
+The supplier platform formerly called Routecast is now Croprithm:
+[repository](https://github.com/brianmbeere/croprithm),
+[frontend](https://croprithm.com).
+Set `CROPRITHM_API_KEY` and `CROPRITHM_BASE_URL` on the backend only.
+The target URL is `https://api.croprithm.com/api` after its DNS and HTTPS are
+verified; until then explicitly use `https://routecast-core.onrender.com/api`.
+The shared configuration falls back to legacy `ROUTECAST_API_KEY` and
+`ROUTECAST_BASE_URL` when new variables are absent. New variables take precedence;
+an explicitly empty new API key disables live integration rather than reviving
+a legacy key. Empty base URLs fail explicitly.
+
+The old `RouteCastIntegrationService` import remains an alias for
+`CroprithmIntegrationService`. Existing `routecast_*` database columns and JSON
+fields remain unchanged to preserve stored orders and client contracts.
+
 The system follows a modular architecture with:
 - Backend services that ingest and process operational data
 - Structured relational data persistence
@@ -61,14 +79,14 @@ Static sites have no always-on compute charge,
 but workspace bandwidth and build-minute allowances still apply.
 
 For the live consolidation, retain the existing `menurithm` logical database on
-the smaller Menurithm instance and restore Routecast into a separate `routecast`
+the smaller Menurithm instance and restore Croprithm into a separate `routecast`
 database there. The `_pilot` names in the database guide are examples for a fresh
 setup, not a requirement to rename or recopy Menurithm's existing data.
 Both inspected instances use Basic 256 MB compute (not legacy $7 Starter);
-Menurithm has 5 GB allocated storage and Routecast 15 GB. Their live
+Menurithm has 5 GB allocated storage and Croprithm 15 GB. Their live
 `SHOW max_connections` value was 103, including PostgreSQL-reserved slots; keep
 the much smaller application pool limits instead of treating that as a target.
-The original Routecast instance was retained during cutover verification, then
+The original Croprithm instance was retained during cutover verification, then
 permanently deleted with user approval after backup checksums and both active
 applications were verified.
 
@@ -77,14 +95,14 @@ applications were verified.
 | Component | Deployment |
 | --- | --- |
 | Menurithm frontend | https://menurithm.onrender.com (static site) |
-| Routecast frontend | https://routecast.onrender.com (static site) |
+| Croprithm frontend | https://croprithm.com (free static site; croprithm.onrender.com fallback) |
 | Menurithm API | https://menurithm-core.onrender.com |
-| Routecast API | https://routecast-core.onrender.com |
+| Croprithm API | https://api.croprithm.com (routecast-core.onrender.com compatibility hostname) |
 | Active Postgres | `shared-pilot-postgres`, Basic 256 MB, 5 GB allocated |
 | Shared infrastructure project | `Shared Infrastructure` / `Production` |
 | Menurithm logical database | `menurithm`, existing owner login |
-| Routecast logical database | `routecast`, dedicated `routecast_api` login |
-| Retired resources | Old paid frontends and original Routecast Postgres permanently deleted |
+| Croprithm logical database | `routecast`, dedicated `routecast_api` login |
+| Retired resources | Old paid frontends and original Croprithm Postgres permanently deleted |
 
 Both APIs use pool size 2, overflow 1, timeout 30 seconds and recycle 1800
 seconds. The sites deploy from their GitHub `main` branches; live Render static
@@ -93,10 +111,10 @@ alone does not attach an existing manually created service to Blueprint sync.
 
 During cutover, both APIs were suspended and database application sessions
 drained before PostgreSQL 16 custom-format backups were taken. All restored
-Routecast table counts/content digests and sequence values matched the source;
+Croprithm table counts/content digests and sequence values matched the source;
 Menurithm's existing tables/content remained unchanged. Post-cutover,
 database-backed reads and CORS preflights passed for both new origins, including
-after suspending the original Routecast instance.
+after suspending the original Croprithm instance.
 
 The two deleted frontend Starter services remove approximately $14/month of
 compute, and deleting the unused Basic 256 MB database removes approximately
@@ -105,7 +123,7 @@ No retired Render resources remain allocated.
 
 The original clean frontend URLs now serve the free static sites. The temporary
 `-static` staging sites are retired; they do not redirect.
-The old Routecast database and its Render-managed recovery history are deleted.
+The old Croprithm database and its Render-managed recovery history are deleted.
 Private PostgreSQL 16 cutover dumps were retained and their checksums verified
 before deletion; they are point-in-time copies, not replicas of subsequent writes.
 Recovery into another instance requires provisioning a target and restoring a
@@ -126,7 +144,7 @@ Shared Infrastructure / Production
 Menurithm / Production
   menurithm-core
   menurithm
-Routecast / Production
+Croprithm / Production
   routecast-core
   routecast
 ```
@@ -135,7 +153,7 @@ This is a Render resource/display-name and project-organization change, not
 `ALTER DATABASE`: database names, roles, passwords, connection URLs, region,
 storage and service URLs are unchanged. An existing hostname or default login
 containing `menurithm` is expected; do not replace it with the new display name.
-Keep `DB_NAME=menurithm` on this API and `DB_NAME=routecast` on Routecast.
+Keep `DB_NAME=menurithm` on this API and `DB_NAME=routecast` on Croprithm.
 
 The two app projects remain independently GitHub-linked. Shared Infrastructure's
 Production environment permits cross-environment private networking, matching
