@@ -29,7 +29,7 @@ export default defineConfig(({ command, mode }) => {
     preview: {
       host: '0.0.0.0',
       port: parseInt(process.env.PORT ?? '4173') || 4173,  // for preview
-      allowedHosts: ['menurithm.onrender.com']
+      allowedHosts: ['menurithm.onrender.com', 'menurithm.com', 'www.menurithm.com']
     }
   }
 })

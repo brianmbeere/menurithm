@@ -59,11 +59,13 @@ nameserver and security records:
 | CNAME | www | menurithm.onrender.com |
 | CNAME | api | menurithm-core.onrender.com |
 
-Replace conflicting parking records for these hosts. DNS and HTTPS verification
-are still pending. Keep `VITE_BASE_URL=https://menurithm-core.onrender.com` until
+DNS is verified for all three hosts, and website HTTPS and the www redirect work.
+The API domain's certificate is still pending. Keep
+`VITE_BASE_URL=https://menurithm-core.onrender.com` until
 `https://api.menurithm.com` has a valid certificate and passes API/CORS checks.
 Then change it to the custom API URL, rebuild, and update cross-app and portfolio
-links. The assigned Render URLs remain available during this staged transition.
+links. The website's primary address is now `https://menurithm.com`;
+the assigned Render URLs remain available during this staged transition.
 Render custom-domain quota charges can apply even though static compute is free.
 
 The React frontend is a browser-only Vite SPA and needs no Node server in
@@ -118,7 +120,7 @@ applications were verified.
 
 | Component | Deployment |
 | --- | --- |
-| Menurithm frontend | https://menurithm.onrender.com (static site) |
+| Menurithm frontend | https://menurithm.com (menurithm.onrender.com compatibility hostname) |
 | Croprithm frontend | https://croprithm.com (free static site; croprithm.onrender.com fallback) |
 | Menurithm API | https://menurithm-core.onrender.com |
 | Croprithm API | https://api.croprithm.com (routecast-core.onrender.com compatibility hostname) |
