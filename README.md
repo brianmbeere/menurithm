@@ -68,9 +68,9 @@ Both inspected instances use Basic 256 MB compute (not legacy $7 Starter);
 Menurithm has 5 GB allocated storage and Routecast 15 GB. Their live
 `SHOW max_connections` value was 103, including PostgreSQL-reserved slots; keep
 the much smaller application pool limits instead of treating that as a target.
-Retain the original Routecast instance until rollback is no longer needed;
-retaining it while running incurs compute/storage charges; suspension stops
-compute but may retain storage charges.
+The original Routecast instance was retained during cutover verification, then
+permanently deleted with user approval after backup checksums and both active
+applications were verified.
 
 #### Verified live layout (2026-10-18)
 
@@ -84,7 +84,7 @@ compute but may retain storage charges.
 | Shared infrastructure project | `Shared Infrastructure` / `Production` |
 | Menurithm logical database | `menurithm`, existing owner login |
 | Routecast logical database | `routecast`, dedicated `routecast_api` login |
-| Rollback resources | Old paid frontends and original Routecast Postgres suspended, not deleted |
+| Retired resources | Old paid frontends and original Routecast Postgres permanently deleted |
 
 Both APIs use pool size 2, overflow 1, timeout 30 seconds and recycle 1800
 seconds. The sites deploy from their GitHub `main` branches; live Render static
@@ -98,16 +98,18 @@ Menurithm's existing tables/content remained unchanged. Post-cutover,
 database-backed reads and CORS preflights passed for both new origins, including
 after suspending the original Routecast instance.
 
-The two suspended frontend Starter services remove approximately $14/month of
-compute, and suspending the unused Basic 256 MB database removes approximately
-$6/month more at current published rates. Storage on the retained rollback
-database can still be billed. No automatic deletion is scheduled.
+The two deleted frontend Starter services remove approximately $14/month of
+compute, and deleting the unused Basic 256 MB database removes approximately
+$6/month more plus its allocated storage charges at current published rates.
+No retired Render resources remain allocated.
 
 The old frontend `onrender.com` URLs are now unavailable, not redirected.
-Do not blindly switch Routecast back to its old database after accepting new
-writes: resume the rollback instance, pause writers and copy/reconcile the latest
-data first. The original database and cutover backups are point-in-time copies,
-not replicas of subsequent writes.
+The old Routecast database and its Render-managed recovery history are deleted.
+Private PostgreSQL 16 cutover dumps were retained and their checksums verified
+before deletion; they are point-in-time copies, not replicas of subsequent writes.
+Recovery into another instance requires provisioning a target and restoring a
+backup. Pause writers and copy/reconcile current data rather than replacing
+newer writes with a stale cutover dump.
 
 #### Shared infrastructure ownership
 
@@ -123,11 +125,9 @@ Shared Infrastructure / Production
 Menurithm / Production
   menurithm-core
   menurithm-static
-  menurithm  (suspended old frontend)
 Routecast / Production
   routecast-core
   routecast-static
-  routecast  (suspended old frontend and original Postgres instance)
 ```
 
 This is a Render resource/display-name and project-organization change, not
