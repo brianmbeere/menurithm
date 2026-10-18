@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: menurithm-static
+    name: menurithm
     runtime: static
     rootDir: frontend
     buildCommand: npm ci --include=dev && npm run build

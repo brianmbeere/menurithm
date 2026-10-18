@@ -26,7 +26,7 @@ Postgres instance, see the [database deployment guide](backend/app/db/README.md#
 
 The React frontend is a browser-only Vite SPA and needs no Node server in
 production. [`render.yaml`](render.yaml) defines a free static site named
-`menurithm-static`: root `frontend`, build `npm ci --include=dev && npm run build`,
+`menurithm`: root `frontend`, build `npm ci --include=dev && npm run build`,
 publish `dist`, with `/*` rewritten to `/index.html` for client-side routing.
 It deliberately does not provision another database or duplicate the backend.
 Do not manage the same static site with both manual settings and a separate
@@ -54,10 +54,10 @@ authorized domains and update any referrer restrictions on the Firebase web
 API key. Verify sign-in, API requests and direct `/signin` and `/dashboard`
 navigation before suspending the old paid frontend.
 
-The old `menurithm.onrender.com` hostname belongs to the existing web service;
-the replacement uses `menurithm-static.onrender.com`. Suspending the old service
-does not redirect that hostname. Update bookmarks/integration links, or move a
-custom domain to the new site. Static sites have no always-on compute charge,
+The static site uses `menurithm.onrender.com`, reclaimed after deleting the old
+paid web service. The temporary `menurithm-static.onrender.com` staging URL is
+retired. Use the clean URL in bookmarks and integration links.
+Static sites have no always-on compute charge,
 but workspace bandwidth and build-minute allowances still apply.
 
 For the live consolidation, retain the existing `menurithm` logical database on
@@ -76,8 +76,8 @@ applications were verified.
 
 | Component | Deployment |
 | --- | --- |
-| Menurithm frontend | https://menurithm-static.onrender.com (static site) |
-| Routecast frontend | https://routecast-static.onrender.com (static site) |
+| Menurithm frontend | https://menurithm.onrender.com (static site) |
+| Routecast frontend | https://routecast.onrender.com (static site) |
 | Menurithm API | https://menurithm-core.onrender.com |
 | Routecast API | https://routecast-core.onrender.com |
 | Active Postgres | `shared-pilot-postgres`, Basic 256 MB, 5 GB allocated |
@@ -103,7 +103,8 @@ compute, and deleting the unused Basic 256 MB database removes approximately
 $6/month more plus its allocated storage charges at current published rates.
 No retired Render resources remain allocated.
 
-The old frontend `onrender.com` URLs are now unavailable, not redirected.
+The original clean frontend URLs now serve the free static sites. The temporary
+`-static` staging sites are retired; they do not redirect.
 The old Routecast database and its Render-managed recovery history are deleted.
 Private PostgreSQL 16 cutover dumps were retained and their checksums verified
 before deletion; they are point-in-time copies, not replicas of subsequent writes.
@@ -124,10 +125,10 @@ Shared Infrastructure / Production
     routecast  (logical database; routecast_api login)
 Menurithm / Production
   menurithm-core
-  menurithm-static
+  menurithm
 Routecast / Production
   routecast-core
-  routecast-static
+  routecast
 ```
 
 This is a Render resource/display-name and project-organization change, not
