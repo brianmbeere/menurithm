@@ -23,7 +23,7 @@ const SignInForm = () => {
     setLoading(true); setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate(next && /^\/dashboard(?:\/|$)/.test(next) ? next : '/dashboard');
+      navigate(next && (/^\/dashboard(?:\/|$)/.test(next) || next === '/account') ? next : '/dashboard');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const auth = getAuth();
@@ -16,13 +17,13 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
         localStorage.setItem("authToken", token);
       } else {
         localStorage.removeItem("authToken");
-        navigate("/signin");
+        navigate(`/signin?next=${encodeURIComponent(pathname)}`, { replace: true });
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, pathname]);
 
   if (loading) {
     return (
