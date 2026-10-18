@@ -80,7 +80,8 @@ compute but may retain storage charges.
 | Routecast frontend | https://routecast-static.onrender.com (static site) |
 | Menurithm API | https://menurithm-core.onrender.com |
 | Routecast API | https://routecast-core.onrender.com |
-| Active Postgres | Existing Menurithm Basic 256 MB instance, 5 GB allocated |
+| Active Postgres | `shared-pilot-postgres`, Basic 256 MB, 5 GB allocated |
+| Shared infrastructure project | `Shared Infrastructure` / `Production` |
 | Menurithm logical database | `menurithm`, existing owner login |
 | Routecast logical database | `routecast`, dedicated `routecast_api` login |
 | Rollback resources | Old paid frontends and original Routecast Postgres suspended, not deleted |
@@ -107,6 +108,46 @@ Do not blindly switch Routecast back to its old database after accepting new
 writes: resume the rollback instance, pause writers and copy/reconcile the latest
 data first. The original database and cutover backups are point-in-time copies,
 not replicas of subsequent writes.
+
+#### Shared infrastructure ownership
+
+The active instance was renamed from `menurithm` to
+[`shared-pilot-postgres`](https://dashboard.render.com/d/dpg-d1b9okidbo4c73cal3o0-a)
+and moved out of the Menurithm app project:
+
+```text
+Shared Infrastructure / Production
+  shared-pilot-postgres
+    menurithm  (logical database; existing owner login)
+    routecast  (logical database; routecast_api login)
+Menurithm / Production
+  menurithm-core
+  menurithm-static
+  menurithm  (suspended old frontend)
+Routecast / Production
+  routecast-core
+  routecast-static
+  routecast  (suspended old frontend and original Postgres instance)
+```
+
+This is a Render resource/display-name and project-organization change, not
+`ALTER DATABASE`: database names, roles, passwords, connection URLs, region,
+storage and service URLs are unchanged. An existing hostname or default login
+containing `menurithm` is expected; do not replace it with the new display name.
+Keep `DB_NAME=menurithm` on this API and `DB_NAME=routecast` on Routecast.
+
+The two app projects remain independently GitHub-linked. Shared Infrastructure's
+Production environment permits cross-environment private networking, matching
+both app environments, so both same-region APIs can use the existing internal
+database URLs. Enabling network isolation later requires reviewing both clients.
+Database credentials stay service-specific; do not share DB_NAME or owner
+credentials through a common environment group.
+
+Neither app's static-site Blueprint declares the shared Postgres resource.
+Do not add a database declaration to both repositories: that would duplicate
+ownership or provision extra billable instances. If adopting Blueprint management
+for shared infrastructure later, import the existing resource into one dedicated
+infrastructure source of truth.
 
 ## Sample Interface
 The screenshot above illustrates how planning insights are presented to users in a practical, operational format.
