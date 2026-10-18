@@ -21,8 +21,8 @@ The supplier platform formerly called Routecast is now Croprithm:
 [repository](https://github.com/brianmbeere/croprithm),
 [frontend](https://croprithm.com).
 Set `CROPRITHM_API_KEY` and `CROPRITHM_BASE_URL` on the backend only.
-The target URL is `https://api.croprithm.com/api` after its DNS and HTTPS are
-verified; until then explicitly use `https://routecast-core.onrender.com/api`.
+The live URL is `https://api.croprithm.com/api`, with DNS and HTTPS verified.
+The compatibility URL is `https://routecast-core.onrender.com/api`.
 The shared configuration falls back to legacy `ROUTECAST_API_KEY` and
 `ROUTECAST_BASE_URL` when new variables are absent. New variables take precedence;
 an explicitly empty new API key disables live integration rather than reviving
