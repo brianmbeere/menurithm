@@ -69,7 +69,44 @@ Menurithm has 5 GB allocated storage and Routecast 15 GB. Their live
 `SHOW max_connections` value was 103, including PostgreSQL-reserved slots; keep
 the much smaller application pool limits instead of treating that as a target.
 Retain the original Routecast instance until rollback is no longer needed;
-retaining it still incurs its database compute/storage charges.
+retaining it while running incurs compute/storage charges; suspension stops
+compute but may retain storage charges.
+
+#### Verified live layout (2026-10-18)
+
+| Component | Deployment |
+| --- | --- |
+| Menurithm frontend | https://menurithm-static.onrender.com (static site) |
+| Routecast frontend | https://routecast-static.onrender.com (static site) |
+| Menurithm API | https://menurithm-core.onrender.com |
+| Routecast API | https://routecast-core.onrender.com |
+| Active Postgres | Existing Menurithm Basic 256 MB instance, 5 GB allocated |
+| Menurithm logical database | `menurithm`, existing owner login |
+| Routecast logical database | `routecast`, dedicated `routecast_api` login |
+| Rollback resources | Old paid frontends and original Routecast Postgres suspended, not deleted |
+
+Both APIs use pool size 2, overflow 1, timeout 30 seconds and recycle 1800
+seconds. The sites deploy from their GitHub `main` branches; live Render static
+settings match the checked-in Blueprint definitions. Editing a Blueprint file
+alone does not attach an existing manually created service to Blueprint sync.
+
+During cutover, both APIs were suspended and database application sessions
+drained before PostgreSQL 16 custom-format backups were taken. All restored
+Routecast table counts/content digests and sequence values matched the source;
+Menurithm's existing tables/content remained unchanged. Post-cutover,
+database-backed reads and CORS preflights passed for both new origins, including
+after suspending the original Routecast instance.
+
+The two suspended frontend Starter services remove approximately $14/month of
+compute, and suspending the unused Basic 256 MB database removes approximately
+$6/month more at current published rates. Storage on the retained rollback
+database can still be billed. No automatic deletion is scheduled.
+
+The old frontend `onrender.com` URLs are now unavailable, not redirected.
+Do not blindly switch Routecast back to its old database after accepting new
+writes: resume the rollback instance, pause writers and copy/reconcile the latest
+data first. The original database and cutover backups are point-in-time copies,
+not replicas of subsequent writes.
 
 ## Sample Interface
 The screenshot above illustrates how planning insights are presented to users in a practical, operational format.
