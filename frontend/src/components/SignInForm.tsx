@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../hooks/initializeFirebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   TextField,
@@ -17,12 +17,13 @@ const SignInForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const next = new URLSearchParams(useLocation().search).get('next');
 
   const handleSignIn = async () => {
     setLoading(true); setError('');
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+      navigate(next && /^\/dashboard(?:\/|$)/.test(next) ? next : '/dashboard');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

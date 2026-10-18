@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { authFetch } from '../hooks/authFetch';
 import { BASE_URL } from '../utils';
+import { getAuth } from 'firebase/auth';
 
 interface Order {
   id: number;
@@ -34,6 +35,7 @@ const stageName = (stage: string) => ({
 }[stage] || stage);
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  await getAuth().authStateReady();
   const response = await authFetch(`${BASE_URL}/api/fulfillment/${path}`, options);
   const body = await response.json();
   if (!response.ok) {
@@ -49,6 +51,7 @@ export default function ProduceOrders({ onCreated }: { onCreated?: (order: Order
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [accepted, setAccepted] = useState<Record<number, number>>({});
+  const signedIn = Boolean(getAuth().currentUser);
   const [form, setForm] = useState({
     restaurant_name: '', produce_type: '', quantity_needed: '10', unit: 'kg',
     method: 'customer_pickup', delivery_address: '', delivery_window_start: '',
@@ -109,7 +112,10 @@ export default function ProduceOrders({ onCreated }: { onCreated?: (order: Order
         <Typography color="text.secondary">Choose how fresh produce reaches your kitchen. No courier marketplace, no surprise delivery charges.</Typography>
       </Box>
       <Alert severity="info">Pilot service: quotes cover the delivery fee only, not the produce price. Agree produce pricing and arrange all payments directly with your farmer. Accepting a quote does not charge you.</Alert>
-      {error && <Alert severity="error" role="alert">{error}</Alert>}
+      {error && <Alert severity="error" role="alert"
+        action={!signedIn ? <Button color="inherit" href="/signin?next=/dashboard/produce-orders">Sign in</Button> : undefined}>
+        {!signedIn ? 'Sign in to your Menurithm account to request produce and review your farmer quotes.' : error}
+      </Alert>}
       {notice && <Alert severity="success" role="status">{notice}</Alert>}
       <Card><CardContent>
         <Typography variant="h6" gutterBottom>Request fresh produce</Typography>
@@ -130,7 +136,7 @@ export default function ProduceOrders({ onCreated }: { onCreated?: (order: Order
           {field('delivery_window_end', 'Preferred window end', 'datetime-local')}
           <TextField fullWidth multiline minRows={2} label="Quality, access or handling requirements" value={form.special_requirements}
             onChange={event => setForm(previous => ({ ...previous, special_requirements: event.target.value }))} />
-          <Box sx={{ alignSelf: 'end' }}><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving...' : 'Send request to farmers'}</Button></Box>
+          <Box sx={{ alignSelf: 'end' }}><Button type="submit" variant="contained" disabled={busy || loading || !signedIn}>{busy ? 'Saving...' : 'Send request to farmers'}</Button></Box>
         </Box>
       </CardContent></Card>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
