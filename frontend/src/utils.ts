@@ -1,4 +1,6 @@
-export const BASE_URL = import.meta.env.VITE_BASE_URL;
+export const BASE_URL = (
+  import.meta.env.VITE_BASE_URL || 'http://localhost:8001'
+).replace(/\/+$/, '');
 
 /**
  * Formats a date string to MM DD YYYY format

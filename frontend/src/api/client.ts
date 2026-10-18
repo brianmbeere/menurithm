@@ -1,4 +1,5 @@
 import { authFetch } from '../hooks/authFetch';
+import { BASE_URL } from '../utils';
 
 /**
  * Enhanced API Client for Menurithm
@@ -8,7 +9,7 @@ export class MenurithmAPIClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:8001';
+    this.baseURL = BASE_URL;
   }
 
   /**

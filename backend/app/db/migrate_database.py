@@ -6,15 +6,17 @@ This script safely migrates existing data to the new user-scoped uniqueness mode
 
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import logging
 import sys
-import os
+import shlex
 
 # Add the project root to the Python path so we can import from app
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from app.core.database_config import create_database_engine, get_database_url
 
 # Load environment variables
 load_dotenv()
@@ -25,25 +27,24 @@ logger = logging.getLogger(__name__)
 
 def backup_database():
     """Create a logical backup of the database using pg_dump."""
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is not set in the environment")
+    database_url = get_database_url()
     
     # Extract connection details from DATABASE_URL
     # Format: postgresql://username:password@localhost:5432/database_name
-    import urllib.parse
-    result = urllib.parse.urlparse(database_url)
-    
-    db_name = result.path[1:]  # Remove leading '/'
-    username = result.username
-    hostname = result.hostname
-    port = result.port or 5432
+    db_name = database_url.database
+    username = database_url.username
+    hostname = database_url.host
+    port = database_url.port or 5432
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_filename = f"menurithm_backup_{timestamp}.sql"
     
     # Construct pg_dump command
-    pg_dump_cmd = f"pg_dump -h {hostname} -p {port} -U {username} -d {db_name} -f {backup_filename}"
+    pg_dump_args = ["pg_dump", "-p", str(port), "-f", backup_filename]
+    for flag, value in (("-h", hostname), ("-U", username), ("-d", db_name)):
+        if value is not None:
+            pg_dump_args.extend([flag, value])
+    pg_dump_cmd = shlex.join(pg_dump_args)
     
     logger.info(f"Creating database backup...")
     logger.info(f"Run this command to create backup: {pg_dump_cmd}")
@@ -80,11 +81,7 @@ def check_existing_constraints(engine):
 
 def migrate_database():
     """Perform the PostgreSQL database migration."""
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is not set in the environment")
-    
-    engine = create_engine(database_url)
+    engine = create_database_engine()
     
     try:
         logger.info("Starting PostgreSQL database migration...")
@@ -112,6 +109,8 @@ def migrate_database():
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         raise
+    finally:
+        engine.dispose()
 
 def verify_migration(engine):
     """Verify that the migration was successful."""
@@ -188,9 +187,11 @@ if __name__ == "__main__":
         migrate_database()
         
         # Step 3: Test the migration
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url)
-        test_user_scoped_constraints(engine)
+        engine = create_database_engine()
+        try:
+            test_user_scoped_constraints(engine)
+        finally:
+            engine.dispose()
         
         print(f"\n🎉 Migration completed successfully!")
         print(f"   - Global uniqueness constraints removed")
