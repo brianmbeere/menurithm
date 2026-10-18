@@ -13,6 +13,46 @@ Menurithm processes operational data such as inventory levels and historical usa
 - Decision-support dashboards for operators
 - Integration with external supply coordination systems (e.g., Croprithm)
 
+## Pickup and farmer-delivery pilot
+
+Open **Produce orders** in the dashboard, inventory's produce-order dialog,
+or **Service Integration → Croprithm produce**. All three use the same persistent
+order workflow. Request customer pickup or farmer delivery with a preferred
+window and handling requirements. Delivery requires an address; pickup does not.
+
+A farmer quotes the fulfillment method they can offer, pickup address where
+needed, handover instructions and USD delivery fee. Review the exact quote,
+explicitly check the agreement box and accept it. Stale quote revisions are
+rejected and require a refresh/review. Accepted terms are immutable.
+Pickup has a zero delivery fee. **Produce pricing and all payments are arranged
+directly with the farmer; accepting terms never charges a card.** Requests do
+not automatically reserve stock or add purchased produce to kitchen inventory.
+Refresh orders to see farmer-confirmed ready/collected/delivered progress.
+
+The server-only `FULFILLMENT_BRIDGE_KEY` must match the Croprithm API setting.
+It is separate from legacy supplier API credentials and must never be exposed
+as a frontend variable. Customer ownership comes from the authenticated
+Menurithm user, not a browser-supplied customer ID. Missing configuration fails
+with 503; upstream failures are explicit, without demo success.
+The legacy `create-produce-order` endpoint now returns 409 directing clients to
+the agreement workflow; existing historical order records are retained.
+
+See [Croprithm deployment and migration instructions](https://github.com/brianmbeere/croprithm#backend-setup-and-deployment-order).
+Tests: from `backend`, run
+`python -m pytest tests/test_fulfillment.py tests/test_croprithm_config.py tests/test_database_config.py -q`.
+For a credential-free UI check, run Vite and open `/tests/fulfillment.html`.
+This dev-only fixture uses fake orders, not production writes.
+
+Both apps now share a restrained green/neutral visual language with semantic
+error/warning states, keyboard focus styles, 44px action targets, responsive
+MUI grids and navigation. Menurithm's dashboard tabs follow URLs/deep links;
+Dishes/Sales labels match their content. Landing and authentication screens
+use clearer pilot-focused messaging. Physical-device and live-user usability
+validation remains a separate pilot task.
+Menurithm's primary green is `#03D069`, sampled from its logo. Dark green text
+is used on this bright background instead of low-contrast white; darker
+companion greens are reserved for readable text on white.
+
 ## Architecture (High-Level)
 
 ### Croprithm integration naming

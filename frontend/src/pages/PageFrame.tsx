@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Container,
   Box,
-  Toolbar,
   CssBaseline,
   Card,
   CardContent,
@@ -10,7 +9,9 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { signOut, getAuth } from "firebase/auth";
+import ProduceOrders from "../components/ProduceOrders";
 
 import InventoryManager from "../components/InventoryManager";
 import MenuManager from "../components/MenuManager";
@@ -30,24 +31,30 @@ const tabRoutes = [
   { title: "Dashboard", path: "/dashboard" },
   { title: "AI Analytics", path: "/dashboard/ai-analytics" },
   { title: "Inventory", path: "/dashboard/inventory" },
-  { title: "Sales", path: "/dashboard/sales" },
   { title: "Dishes", path: "/dashboard/dishes" },
+  { title: "Sales", path: "/dashboard/sales" },
   { title: "Menu Generator", path: "/dashboard/menu" },
   { title: "Service Integration", path: "/dashboard/service-integration" },
+  { title: "Produce orders", path: "/dashboard/produce-orders" },
 ];
 
 const PageFrame = () => {
-  const [activeTab, setActiveTab] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerExpanded, setDrawerExpanded] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeTab = Math.max(0, tabRoutes.findIndex(tab => tab.path === location.pathname.replace(/\/$/, "")));
+  const setActiveTab = (index: number) => navigate(tabRoutes[index].path);
 
   const toggleDrawer = () => setMobileOpen(!mobileOpen);
 
   const handleAccountSettings = () => navigate("/account");
-  const handleLogout = () => navigate("/");
+  const handleLogout = async () => {
+    await signOut(getAuth());
+    navigate("/signin");
+  };
   const handleLogoClick = () => navigate("/dashboard");
 
   return (
@@ -58,8 +65,7 @@ const PageFrame = () => {
       <Box
         sx={{
           position: "fixed",
-          top: 5,
-          pr: 2,
+          top: 0,
           left: {
             xs: 0,
             md: `${drawerExpanded ? drawerWidth : collapsedDrawerWidth}px`,
@@ -98,7 +104,8 @@ const PageFrame = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: "100%",
+          width: { xs: "100%", md: `calc(100% - ${drawerExpanded ? drawerWidth : collapsedDrawerWidth}px)` },
+          minWidth: 0,
           backgroundColor: theme.palette.background.default,
           minHeight: "100vh",
           pt: "64px", // AppBar height
@@ -109,9 +116,7 @@ const PageFrame = () => {
         }}
       >
         {/* Push content down to avoid overlap with AppBar */}
-        <Toolbar sx={{ minHeight: 64 }} />
-
-        <Container maxWidth={false} sx={{ py: 2 }}>
+        <Container maxWidth="xl" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 4 } }}>
           <Fade in timeout={500}>
             <Box>
               {activeTab === 0 && (
@@ -163,6 +168,7 @@ const PageFrame = () => {
                   </CardContent>
                 </Card>
               )}
+              {activeTab === 7 && <ProduceOrders />}
             </Box>
           </Fade>
         </Container>

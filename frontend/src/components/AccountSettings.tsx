@@ -42,7 +42,7 @@ const AccountSettings = () => {
 
   return (
     <Grid container justifyContent="center" sx={{ p: 2 }}>
-      <Grid sx={{ xs: 12, sm: 8, md: 6, lg: 4 }}>
+      <Grid size={{ xs: 12, sm: 8, md: 6, lg: 4 }}>
         <Card sx={{ borderRadius: 4, boxShadow: 3 }}>
           <CardContent>
             <Typography variant="h5" gutterBottom>
@@ -50,7 +50,7 @@ const AccountSettings = () => {
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid sx={{ xs: 2 }} >
+              <Grid size={{ xs: 12 }} >
                 <TextField
                   label="Name"
                   name="name"
@@ -59,7 +59,7 @@ const AccountSettings = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid sx={{xs: 12}}>
+              <Grid size={{xs: 12}}>
                 <TextField
                   label="Email"
                   name="email"
@@ -78,7 +78,7 @@ const AccountSettings = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid sx={{xs: 12, sm: 6}} >
+              <Grid size={{xs: 12, sm: 6}} >
                 <TextField
                   label="Confirm Password"
                   name="confirmPassword"

@@ -544,28 +544,7 @@ async def create_produce_order(
     current_user: User = Depends(get_current_user)
 ):
     """Create a produce order through Croprithm"""
-    try:
-        # Convert Pydantic model to dict for service
-        order_dict = order_data.model_dump()
-        
-        api_key = get_croprithm_api_key()
-        base_url = get_croprithm_base_url()
-        
-        routecast_service = CroprithmIntegrationService(db, api_key, base_url)
-        result = await routecast_service.create_produce_request(
-            user_id=current_user.firebase_uid,
-            order_data=order_dict
-        )
-        
-        if not result.get("success"):
-            raise HTTPException(status_code=400, detail=result.get("message", "Failed to create order"))
-        
-        return result
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create produce order: {str(e)}")
+    raise HTTPException(409, "Use Produce orders in the workspace to request pickup or farmer delivery and approve the farmer's quote")
 
 @router.get("/produce-request/{request_id}")
 async def get_produce_request_status(

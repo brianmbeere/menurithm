@@ -156,35 +156,35 @@ const SalesManager = () => {
       <Divider sx={{ my: 2 }} />
 
       <Grid container spacing={2}>
-        <Grid sx={{ xs:6, sm:3, md:2 }}>
+        <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Date" type="date" InputLabelProps={{ shrink: true }}
             value={form.timestamp}
             onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
           />
         </Grid>
-        <Grid sx={{ xs:6, sm:3, md:2 }}>
+        <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Dish Name"
             value={form.dish_name}
             onChange={(e) => setForm({ ...form, dish_name: e.target.value })}
           />
         </Grid>
-        <Grid sx={{ xs:6, sm:3, md:2 }}>
+        <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Qty" type="number"
             value={form.quantity_sold}
             onChange={(e) => setForm({ ...form, quantity_sold: parseInt(e.target.value) })}
           />
         </Grid>
-        <Grid sx={{ xs:6, sm:3, md:2 }}>
+        <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Unit Price" type="number"
             value={form.price_per_unit}
             onChange={(e) => setForm({ ...form, price_per_unit: parseFloat(e.target.value) })}
           />
         </Grid>
-        <Grid sx={{ xs:12, md:2 }}>
+        <Grid size={{ xs:12, md:2 }}>
           <Button fullWidth variant="contained" onClick={handleSubmit}>
             {editSaleId !== null ? "Update Sale" : "Submit Sale"}
           </Button>
@@ -193,7 +193,7 @@ const SalesManager = () => {
 
       <Divider sx={{ my: 4 }} />
       <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <Grid columns={{ xs: 12, sm: 3 }} >
+        <Grid size={{ xs: 12, sm: 3 }} >
           <Button
             variant="outlined"
             onClick={() => setShowCSVHelpDialog(true)}
@@ -203,7 +203,7 @@ const SalesManager = () => {
             CSV Help
           </Button>
         </Grid>
-        <Grid columns={{ xs: 12, sm: 4 }} >
+        <Grid size={{ xs: 12, sm: 4 }} >
         <Button
           variant="outlined"
           component="label"
@@ -219,7 +219,7 @@ const SalesManager = () => {
           />
         </Button>
         </Grid>
-        <Grid columns={{ xs: 12, sm: 5 }} >
+        <Grid size={{ xs: 12, sm: 5 }} >
           <Button
             fullWidth
             variant="contained"

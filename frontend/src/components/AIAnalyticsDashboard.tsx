@@ -137,7 +137,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
 
       <Grid container spacing={3}>
         {/* Optimization Score */}
-        <Grid columns={{ xs: 12, md: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <Card elevation={3}>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
@@ -159,7 +159,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Cost Savings Potential */}
-        <Grid columns={{ xs: 12, md: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <Card elevation={3}>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
@@ -176,7 +176,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Waste Reduction */}
-        <Grid columns={{ xs: 12, md: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <Card elevation={3}>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
@@ -193,7 +193,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Active Alerts */}
-        <Grid columns={{ xs: 12, md: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <Card elevation={3}>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
@@ -210,7 +210,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Smart Alerts */}
-        <Grid columns={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', overflow: 'auto' }}>
             <Typography variant="h6" gutterBottom>
               🚨 Smart Alerts
@@ -266,7 +266,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Top Cost Saving Opportunities */}
-        <Grid columns={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', overflow: 'auto' }}>
             <Typography variant="h6" gutterBottom>
               ✨ Cost Saving Opportunities
@@ -311,7 +311,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         </Grid>
 
         {/* Action Buttons */}
-        <Grid columns={{ xs: 12 }}>
+        <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               AI Actions

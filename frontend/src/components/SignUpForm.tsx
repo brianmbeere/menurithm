@@ -31,7 +31,7 @@ const SignUpForm = () => {
   const {
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
   });
@@ -39,15 +39,16 @@ const SignUpForm = () => {
   const navigate = useNavigate();
   const [firebaseError, setFirebaseError] = useState("");
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: yup.InferType<typeof schema>) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
       const idToken = await user.getIdToken();
       const db = getFirestore();
+      const { password: _password, ...profile } = data;
 
       await setDoc(doc(db, "users", user.uid), {
-        ...data,
+        ...profile,
         createdAt: new Date().toISOString(),
       });
 
@@ -58,7 +59,7 @@ const SignUpForm = () => {
           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          ...data,
+          ...profile,
           firebase_uid: user.uid,
         }),
       });
@@ -78,10 +79,11 @@ const SignUpForm = () => {
   };
 
   return (
-    <Container maxWidth="xs">
-      <Paper elevation={3} sx={{ p: 4, mt: 8 }}>
+    <Container maxWidth="sm" sx={{ py: 5 }}>
+      <Paper elevation={1} sx={{ p: { xs: 3, md: 5 } }}>
+        <Typography variant="overline" color="primary">Join Menurithm</Typography>
         <Typography variant="h5" gutterBottom>
-          Sign Up
+          Make room for a better kitchen
         </Typography>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} display="flex" flexDirection="column" gap={2}>
           <Controller
@@ -146,8 +148,8 @@ const SignUpForm = () => {
           />
 
           {firebaseError && <Typography color="error">{firebaseError}</Typography>}
-          <Button type="submit" variant="contained" fullWidth>
-            Sign Up
+          <Button type="submit" variant="contained" fullWidth disabled={isSubmitting}>
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
           <Typography variant="body2" align="center" sx={{ mt: 2 }}>
             Already have an account? <a href="/signin">Sign In</a>

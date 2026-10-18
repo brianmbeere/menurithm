@@ -253,7 +253,7 @@ const InventoryManager = () => {
         {/* Upload Section */}
         <Typography variant="subtitle1" gutterBottom>Upload Inventory CSV</Typography>
         <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 3 }} >
+          <Grid size={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
               placeholder="Search by name, category, or location"
@@ -262,7 +262,7 @@ const InventoryManager = () => {
               size="small"
             />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2 }} >
+          <Grid size={{ xs: 12, sm: 2 }} >
             <Button
               variant="outlined"
               onClick={() => setShowCSVHelpDialog(true)}
@@ -272,7 +272,7 @@ const InventoryManager = () => {
               CSV Help
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 3 }} >
+          <Grid size={{ xs: 12, sm: 3 }} >
             <Button
               variant="outlined"
               component="label"
@@ -288,7 +288,7 @@ const InventoryManager = () => {
               />
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid size={{ xs: 12, sm: 4 }} >
             <Button
               fullWidth
               variant="contained"
@@ -305,7 +305,7 @@ const InventoryManager = () => {
         <Divider sx={{ my: 2 }} />
         <Typography variant="subtitle1" gutterBottom>🤖 AI-Powered Features</Typography>
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 2.4 }}>
+          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -315,7 +315,7 @@ const InventoryManager = () => {
               ✨ AI Optimization
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2.4 }}>
+          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -325,7 +325,7 @@ const InventoryManager = () => {
               🚛 Auto Order
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2.4 }}>
+          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="contained"
               fullWidth
@@ -335,7 +335,7 @@ const InventoryManager = () => {
               🥬 Order Produce
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2.4 }}>
+          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -345,7 +345,7 @@ const InventoryManager = () => {
               🎤 Voice Update
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2.4 }}>
+          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
               fullWidth
@@ -532,7 +532,7 @@ const InventoryManager = () => {
         onClose={() => setProduceOrderDialogOpen(false)}
         onSuccess={(result) => {
           setSnackbar({
-            message: `✅ Order created: ${result.message}`,
+            message: result.message,
             severity: "success"
           });
         }}

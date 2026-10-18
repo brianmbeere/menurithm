@@ -5,20 +5,20 @@ import { motion } from 'framer-motion';
 
 const features = [
   {
-    title: '📦 Track Ingredients & Inventory',
+    title: 'A clearer view of your kitchen',
     content: 'Know exactly what you can prepare with your current stock — instantly.'
   },
   {
-    title: '📊 Analyze Sales & Reduce Waste',
+    title: 'Less waste. Better decisions.',
     content: 'Use your past sales to optimize what you cook and cut down on food waste.'
   },
   {
-    title: '🍽️ Auto-Generate Smart Menus',
+    title: 'Menus built around your ingredients',
     content: 'Let AI generate your daily menu based on real-time data and trends.'
   },
   {
-    title: '🔮 Predict What to Cook',
-    content: 'Leverage your best-sellers to guide future dishes and reduce decision fatigue.'
+    title: 'Fresh produce, closer to the source',
+    content: 'Request produce from Croprithm farmers. Choose customer pickup or farmer delivery and approve the delivery fee before fulfillment.'
   }
 ];
 
@@ -45,6 +45,10 @@ const LandingPage: React.FC = () => {
           fontFamily: theme.typography.fontFamily,
         }}
       >
+        <Box component="header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" color="primary">Menurithm</Typography>
+          <Button href="/signin" variant="outlined">Sign in</Button>
+        </Box>
         <Box py={{ xs: 6, md: 10 }} textAlign="center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -52,39 +56,40 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8 }}
           >
           
+            <Typography variant="overline" color="primary">The thoughtful kitchen workspace</Typography>
+            <Typography variant="h1" sx={{ maxWidth: 850, mx: 'auto', my: 2 }}>Run a fresher,<br />better-prepared kitchen.</Typography>
+            <Typography color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontSize: '1.15rem' }}>Bring inventory, dishes, sales and local produce sourcing together. Built for the everyday rhythm of your restaurant.</Typography>
             <motion.img
               src="./menurithm-logo-transparent.png"
               alt="Menurithm Logo"
-              width="80%"
+              width="45%"
               height="auto"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1 }}
-              style={{ maxWidth: '400px' }}
+              style={{ maxWidth: '190px', marginTop: 24 }}
             />
-            <Box mt={4}>
+            <Box mt={4} sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 size="large"
                 sx={{
-                  mx: 2,
                   backgroundColor: theme.palette.primary.main,
                   color: theme.palette.primary.contrastText,
                   fontWeight: 600,
                   fontFamily: theme.typography.fontFamily,
-                  '&:hover': { backgroundColor: theme.palette.primary.dark || theme.palette.primary.main },
+                  '&:hover': { backgroundColor: theme.palette.primary.light },
                 }}
                 onClick={() => navigate('/signin')}
               >
-                Try Menurithm Now
+                Open your workspace
               </Button>
               <Button
                 variant="outlined"
                 size="large"
                 sx={{
-                  mx: 2,
                   borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
+                  color: theme.palette.primary.dark,
                   fontWeight: 600,
                   fontFamily: theme.typography.fontFamily,
                   '&:hover': { backgroundColor: theme.palette.secondary.main, borderColor: theme.palette.primary.main },
@@ -128,7 +133,7 @@ const LandingPage: React.FC = () => {
 
         <Grid container spacing={4}>
           {features.map((feature, i) => (
-            <Grid columns={{ xs: 12, md: 6 }} key={i}>
+            <Grid size={{ xs: 12, md: 6 }} key={i}>
               <motion.div
                 custom={i}
                 initial="hidden"
@@ -151,7 +156,7 @@ const LandingPage: React.FC = () => {
                     fontWeight={600}
                     gutterBottom
                     sx={{
-                      color: theme.palette.primary.main,
+                      color: theme.palette.primary.dark,
                       fontFamily: theme.typography.h6?.fontFamily || theme.typography.fontFamily,
                     }}
                   >
@@ -173,31 +178,8 @@ const LandingPage: React.FC = () => {
         </Grid>
       </Container>
 
-      {/* Floating CTA */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          zIndex: 1000,
-          display: { xs: 'flex', md: 'flex' },
-        }}
-      >
-        <Button
-          variant="contained"
-          size="large"
-          sx={{
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            fontWeight: 600,
-            fontFamily: theme.typography.fontFamily,
-            boxShadow: '0 2px 8px rgba(46,204,113,0.18)',
-            '&:hover': { backgroundColor: theme.palette.primary.dark || theme.palette.primary.main },
-          }}
-          onClick={() => navigate('/signin')}
-        >
-          🚀 Try Menurithm
-        </Button>
+      <Box component="footer" sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
+        <Typography variant="body2">Menurithm · Built for the everyday rhythm of your kitchen.</Typography>
       </Box>
     </>
   );

@@ -50,6 +50,7 @@ const sections = [
       </svg>
     )
   },
+  { label: "Produce orders", icon: <ListAltIcon /> },
 ];
 
 const COLLAPSED_WIDTH = 64;
@@ -82,7 +83,7 @@ const DashboardNavigation = ({
           px: 1,
         }}
       >
-         <IconButton edge="start" onClick={onLogoClick}>
+         <IconButton edge="start" onClick={onLogoClick} sx={{ bgcolor: "primary.main", "&:hover": { bgcolor: "primary.dark" } }}>
             <img 
               src={logo} 
               alt="Menurithm Logo" 
@@ -96,13 +97,13 @@ const DashboardNavigation = ({
             variant="h6"
             noWrap
             component="a"
-            href="dashboard"
+            href="/dashboard"
             sx={{
               mr: 1,
               display: { xs: 'flex', md: 'flex' },
               fontFamily: theme.typography.fontFamily,
               fontWeight: 700,
-              letterSpacing: '.3rem',
+              letterSpacing: '-.03em',
               color: 'inherit',
               textDecoration: 'none',
               flexGrow: 1,
@@ -135,9 +136,9 @@ const DashboardNavigation = ({
                 justifyContent: expanded ? "initial" : "center",
                 px: 2.5,
                 '&.Mui-selected': {
-                  backgroundColor: '#2ECC71',
-                  color: '#FAFAFA',
-                  '& .MuiListItemIcon-root': { color: '#FAFAFA' },
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
                 },
                 '&:hover': {
                   backgroundColor: '#B2F2BB',
@@ -152,7 +153,7 @@ const DashboardNavigation = ({
                   minWidth: 0,
                   mr: expanded ? 2 : "auto",
                   justifyContent: "center",
-                  color: activeTab === index ? '#FAFAFA' : '#2F2F2F',
+                  color: activeTab === index ? 'primary.contrastText' : 'text.secondary',
                 }}
               >
                 {section.icon}
@@ -171,8 +172,8 @@ const DashboardNavigation = ({
             startIcon={expanded ? <LogoutIcon /> : undefined}
             onClick={onLogout}
             sx={{
-              backgroundColor:  '#FFA552',
-              color: theme.palette.primary.contrastText,
+              backgroundColor: 'primary.main',
+              color: 'primary.contrastText',
               fontWeight: 600,
               fontFamily: 'Inter, Poppins, sans-serif',
               minWidth: 0,
@@ -186,12 +187,14 @@ const DashboardNavigation = ({
         </Tooltip>
         <Tooltip title="Expand or Collapse" sx={{ p: expanded ? 2: 1, pb: expanded ? 2 : 1}}>
           <IconButton 
+            aria-label={expanded ? "Collapse navigation" : "Expand navigation"}
+            onClick={() => setExpanded(!expanded)}
             sx={{
               minWidth: 0,
               px: expanded ? 2 : 1,
             }}
           >
-            { expanded ?   <DrawerCollapseIcon onClick={() => { setExpanded(false); }}/> :  <DrawerExpandIcon onClick={() => { setExpanded(true); }}/> }
+            {expanded ? <DrawerCollapseIcon /> : <DrawerExpandIcon />}
           </IconButton>
         </Tooltip>
       </Box>
@@ -210,7 +213,7 @@ const DashboardNavigation = ({
           boxSizing: "border-box",
           width: currentDrawerWidth,
           transition: "width 0.2s",
-          backgroundColor: "#B2F2BB",
+          backgroundColor: "#FFFFFF",
           color: "#2F2F2F",
           fontFamily: 'Inter, Poppins, sans-serif',
           borderRight: "none",
@@ -225,5 +228,3 @@ const DashboardNavigation = ({
 };
 
 export default DashboardNavigation;
-
-

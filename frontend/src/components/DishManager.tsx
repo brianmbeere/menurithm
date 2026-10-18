@@ -29,7 +29,7 @@ const IngredientInputs = ({
   ingredientOptions: IngredientOption[];
 }) => (
   <>
-    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
+    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
       <Autocomplete
         options={ingredientOptions}
         getOptionLabel={(option) => option.ingredient_name}
@@ -38,10 +38,10 @@ const IngredientInputs = ({
         renderInput={(params) => <TextField {...params} label="Ingredient" />}
       />
     </Grid>
-    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
+    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
     </Grid>
-    <Grid columns={{ xs: 12, sm: 4, md: 4 }}>
+    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Unit" value={ing.unit} onChange={(e) => onChange(index, "unit", e.target.value)} />
     </Grid>
   </>
@@ -253,7 +253,7 @@ const DishManager = () => {
         {/* Upload Section */}
         <Typography variant="subtitle1" gutterBottom>Upload Dishes CSV</Typography>
         <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid columns={{ xs: 12, sm: 3 }} >
+          <Grid size={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
               placeholder="Search by name or description"
@@ -265,7 +265,7 @@ const DishManager = () => {
               size="small"
             />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 2 }} >
+          <Grid size={{ xs: 12, sm: 2 }} >
             <Button
               variant="outlined"
               onClick={() => setShowCSVHelpDialog(true)}
@@ -275,7 +275,7 @@ const DishManager = () => {
               CSV Help
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 3 }} >
+          <Grid size={{ xs: 12, sm: 3 }} >
             <Button
               variant="outlined"
               component="label"
@@ -291,7 +291,7 @@ const DishManager = () => {
               />
             </Button>
           </Grid>
-          <Grid columns={{ xs: 12, sm: 4 }} >
+          <Grid size={{ xs: 12, sm: 4 }} >
             <Button
               fullWidth
               variant="contained"
@@ -309,13 +309,13 @@ const DishManager = () => {
         </Typography>
 
         <Grid container spacing={2}>
-          <Grid columns={{ xs: 12, sm: 6, md: 6 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Dish Name" value={dishForm.name} onChange={(e) => handleDishChange("name", e.target.value)} />
           </Grid>
-          <Grid columns={{ xs: 12, sm: 6, md: 6 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Description" value={dishForm.description} onChange={(e) => handleDishChange("description", e.target.value)} />
           </Grid>
-          <Grid columns={{ xs: 12 }}>
+          <Grid size={{ xs: 12 }}>
             <Button onClick={() => setShowIngredients(prev => !prev)} startIcon={showIngredients ? <ExpandLess /> : <ExpandMore />}>
               {showIngredients ? "Hide Ingredients" : "Add Ingredients"}
             </Button>
@@ -328,12 +328,12 @@ const DishManager = () => {
                 <Button onClick={() => removeIngredientField(i)}>Remove</Button>
               </Stack>
             ))}
-              <Grid columns={{ xs: 12 }}>
+              <Grid size={{ xs: 12 }}>
                 <Button onClick={addIngredientField}>Add Ingredient</Button>
               </Grid>
             </Grid>
           </Collapse>
-          <Grid columns={{ xs: 12 }}>
+          <Grid size={{ xs: 12 }}>
             <Button variant="contained" onClick={submitDish} sx={{ mt: 2 }}>
               {editDishId !== null ? "Update Dish" : "Save Dish"}
             </Button>
