@@ -10,6 +10,7 @@ import { type DishOutput, type DishInput, createDish } from "../api/createDish";
 import deleteDish from "../api/deleteDish";
 import { updateDish } from "../api/updateDish";
 import { Delete, Edit, ExpandLess, ExpandMore, UploadFile } from "./SVGIcons";
+import { PageHeading } from "./WorkspaceUI";
 import fetchInventory from "../api/fetchInventory";
 import uploadDishesFile from "../api/uploadDishesFile";
 import CSVHelpDialog from "./CSVHelpDialog";
@@ -249,20 +250,16 @@ const DishManager = () => {
 
 
   return (
-    <Card sx={{ mt: 4 }} elevation={3}>
+    <>
+    <PageHeading icon="dishes" title="Dishes & recipes" description="Build recipes and set how much of each ingredient a serving uses." />
+    <Card variant="outlined">
       <CardContent>
-        <Typography variant="h5" fontWeight={600} gutterBottom color="primary">
-          Dish Manager
-        </Typography>
-
-        <Divider sx={{ my: 3 }} />
-
-        {/* Upload Section */}
-        <Typography variant="subtitle1" gutterBottom>Upload Dishes CSV</Typography>
+        <Typography component="h2" variant="subtitle1" fontWeight={700} gutterBottom>Find or import dishes</Typography>
         <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
           <Grid size={{ xs: 12, sm: 3 }} >
             <TextField
               fullWidth
+              label="Search dishes"
               placeholder="Search by name or description"
               value={search}
               onChange={(e) => {
@@ -306,13 +303,14 @@ const DishManager = () => {
               startIcon={<UploadFile />}
               disabled={!csvFile}
             >
-              Upload
+              Import dishes
             </Button>
           </Grid>
         </Grid>
 
-        <Typography variant="h6" gutterBottom>
-          {editDishId !== null ? "Edit Dish" : "Create Dish"}
+        <Divider sx={{ my: 2 }} />
+        <Typography component="h2" variant="h6" gutterBottom>
+          {editDishId !== null ? "Edit dish" : "Create a dish"}
         </Typography>
 
         <Grid container spacing={2}>
@@ -387,7 +385,7 @@ const DishManager = () => {
           </Box>
         )}
 
-        <Box sx={{ overflowX: "auto" }}>
+        <Box role="region" aria-label="Dish list table" tabIndex={0} sx={{ overflowX: "auto" }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -468,6 +466,7 @@ const DishManager = () => {
         />
       </CardContent>
     </Card>
+    </>
   );
 };
 

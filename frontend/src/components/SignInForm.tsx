@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../hooks/initializeFirebase';
+import PublicHeader from './PublicHeader';
+import { PageHeading } from './WorkspaceUI';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -34,13 +36,10 @@ const SignInForm = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', py: 4 }}>
-      <Paper elevation={1} sx={{ p: { xs: 3, md: 5 }, width: '100%' }}>
-        <Typography variant="overline" color="primary">Menurithm workspace</Typography>
-        <Typography variant="h5" gutterBottom>
-          Welcome back
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>A clearer day in the kitchen starts here.</Typography>
+    <Container maxWidth="sm" sx={{ pb: 4 }}>
+      <PublicHeader action="Create account" to="/signup" />
+      <Paper component="main" variant="outlined" sx={{ p: { xs: 2.5, sm: 4 }, mt: 4 }}>
+        <PageHeading icon="account" title="Sign in" description="Open your Menurithm kitchen workspace." />
         <Box component="form" onSubmit={event => { event.preventDefault(); void handleSignIn(); }} display="flex" flexDirection="column" gap={2}>
           <TextField
             label="Email"
@@ -60,7 +59,7 @@ const SignInForm = () => {
             onChange={(e) => setPassword(e.target.value)}
             fullWidth
           />
-          {error && <Typography color="error">{error}</Typography>}
+          {error && <Typography role="alert" color="error">{error}</Typography>}
           <Button variant="contained" type="submit" disabled={loading} fullWidth>
             {loading ? 'Signing in...' : 'Sign in'}
           </Button>

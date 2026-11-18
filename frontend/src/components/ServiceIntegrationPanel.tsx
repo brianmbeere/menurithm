@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Box, Button, Card, CardContent, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { serviceIntegrationAPI, type ServiceDish } from '../api/serviceIntegration';
 import ProduceOrders from './ProduceOrders';
+import { PageHeading } from './WorkspaceUI';
 
 export default function ServiceIntegrationPanel() {
   const [tab, setTab] = useState(0);
@@ -24,10 +25,8 @@ export default function ServiceIntegrationPanel() {
     finally { setBusy(false); }
   };
   return <Stack spacing={3}>
-    <Box><Typography variant="overline" color="primary">Connected kitchen</Typography>
-      <Typography variant="h4">Service integrations</Typography>
-      <Typography color="text.secondary">Source from farmers or manage your automated dish workflow.</Typography></Box>
-    <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Service integrations">
+    <PageHeading icon="link" title="Integrations" description="Work with Croprithm produce or use the service dish creation workflow." />
+    <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Service integrations" variant="scrollable">
       <Tab label="Croprithm produce" id="integration-tab-0" aria-controls="integration-panel-0" />
       <Tab label="Service dish creation" id="integration-tab-1" aria-controls="integration-panel-1" />
     </Tabs>

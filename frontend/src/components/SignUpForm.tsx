@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import { getFirestore, setDoc, doc } from 'firebase/firestore';
 import { BASE_URL } from "../utils";
+import PublicHeader from './PublicHeader';
+import { PageHeading } from './WorkspaceUI';
 
 const schema = yup.object({
   fullName: yup.string().required("Full Name is required"),
@@ -79,12 +81,10 @@ const SignUpForm = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 5 }}>
-      <Paper elevation={1} sx={{ p: { xs: 3, md: 5 } }}>
-        <Typography variant="overline" color="primary">Join Menurithm</Typography>
-        <Typography variant="h5" gutterBottom>
-          Make room for a better kitchen
-        </Typography>
+    <Container maxWidth="sm" sx={{ pb: 4 }}>
+      <PublicHeader />
+      <Paper component="main" variant="outlined" sx={{ p: { xs: 2.5, sm: 4 }, mt: 4 }}>
+        <PageHeading icon="account" title="Create an account" description="Set up your restaurant’s Menurithm workspace." />
         <Box component="form" onSubmit={handleSubmit(onSubmit)} display="flex" flexDirection="column" gap={2}>
           <Controller
             name="fullName"
@@ -147,7 +147,7 @@ const SignUpForm = () => {
             )}
           />
 
-          {firebaseError && <Typography color="error">{firebaseError}</Typography>}
+          {firebaseError && <Typography role="alert" color="error">{firebaseError}</Typography>}
           <Button type="submit" variant="contained" fullWidth disabled={isSubmitting}>
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>

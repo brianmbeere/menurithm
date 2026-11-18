@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Button, Container, Grid, Paper, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import PublicHeader from '../components/PublicHeader';
 
 const features = [
   {
@@ -45,10 +46,7 @@ const LandingPage: React.FC = () => {
           fontFamily: theme.typography.fontFamily,
         }}
       >
-        <Box component="header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2, gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6" color="primary">Menurithm</Typography>
-          <Button href="/signin" variant="outlined">Sign in</Button>
-        </Box>
+        <PublicHeader />
         <Box py={{ xs: 6, md: 10 }} textAlign="center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -57,7 +55,7 @@ const LandingPage: React.FC = () => {
           >
           
             <Typography variant="overline" color="primary">The thoughtful kitchen workspace</Typography>
-            <Typography variant="h1" sx={{ maxWidth: 850, mx: 'auto', my: 2 }}>Run a fresher,<br />better-prepared kitchen.</Typography>
+            <Typography variant="h1" sx={{ maxWidth: 850, mx: 'auto', my: 2, fontSize: { xs: '2.35rem', sm: '3.75rem', md: '4.75rem' }, letterSpacing: '-.045em' }}>Run a fresher,<br />better-prepared kitchen.</Typography>
             <Typography color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontSize: '1.15rem' }}>Bring inventory, dishes, sales and local produce sourcing together. Built for the everyday rhythm of your restaurant.</Typography>
             <motion.img
               src="./menurithm-logo-transparent.png"
@@ -152,6 +150,7 @@ const LandingPage: React.FC = () => {
                   }}
                 >
                   <Typography
+                    component="h2"
                     variant="h6"
                     fontWeight={600}
                     gutterBottom

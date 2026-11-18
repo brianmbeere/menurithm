@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardActionArea, CardContent, Chip, Dialog, Di
 import { fetchCroprithmProduce, type CroprithmProduceListing } from '../api/fetchCroprithmProduce';
 import { authFetch } from '../hooks/authFetch';
 import { BASE_URL } from '../utils';
+import { PageHeading, WorkspaceIcon } from './WorkspaceUI';
 import ProduceOrders from './ProduceOrders';
 import ProduceArtwork from './ProduceArtwork';
 
@@ -37,6 +38,9 @@ export default function ProduceMarketplace() {
   const [cartOpen, setCartOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [listingError, setListingError] = useState('');
+  const [sort, setSort] = useState('recommended');
+  const visibleListings = sort === 'recommended' ? listings : [...listings].sort((a, b) =>
+    a.produce_type.localeCompare(b.produce_type) || a.seller_name.localeCompare(b.seller_name));
 
   useEffect(() => {
     let active = true;
@@ -139,28 +143,28 @@ export default function ProduceMarketplace() {
   };
 
   return <Stack spacing={3}>
-    <Box sx={{ bgcolor: 'primary.dark', color: 'primary.contrastText', borderRadius: 4, p: { xs: 3, md: 5 } }}>
-      <Stack spacing={1} alignItems="flex-start">
-        <Typography variant="overline">The Croprithm market</Typography>
-        <Typography component="h1" variant="h4" fontWeight={750}>Produce marketplace</Typography>
-        <Typography>Shop farm produce for your kitchen. Order online, pay at pickup.</Typography>
-      </Stack>
-    </Box>
-    <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Produce workspace">
+    <PageHeading icon="shop" title="Produce marketplace"
+      description="Shop Croprithm farms for your kitchen. Order online and pay at pickup."
+      actions={tab === 0 && <Button variant="contained" startIcon={<WorkspaceIcon name="cart" />} aria-haspopup="dialog"
+        onClick={() => { setListingError(''); setCartOpen(true); }}>Cart ({cart.length})</Button>} />
+    <Tabs value={tab} onChange={(_, value: number) => setTab(value)} aria-label="Produce workspace" variant="scrollable">
       <Tab label="Shop produce" id="produce-shop-tab" aria-controls="produce-shop" />
       <Tab label="Orders & quotes" id="produce-orders-tab" aria-controls="produce-orders" />
     </Tabs>
     {tab === 1 ? <Box role="tabpanel" id="produce-orders" aria-labelledby="produce-orders-tab"><ProduceOrders /></Box> :
       <Stack role="tabpanel" id="produce-shop" aria-labelledby="produce-shop-tab" spacing={2}>
-        <Stack direction="row" gap={1.5} alignItems="center">
+        <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
           <TextField fullWidth size="small" label="Search produce" value={search}
             onChange={event => setSearch(event.target.value)} slotProps={{ htmlInput: { maxLength: 100 } }} />
-          <Button variant="contained" sx={{ flexShrink: 0 }} aria-haspopup="dialog"
-            onClick={() => { setListingError(''); setCartOpen(true); }}>Cart ({cart.length})</Button>
+          <TextField select size="small" label="Sort listings" value={sort} onChange={event => setSort(event.target.value)}
+            sx={{ minWidth: { sm: 175 } }}>
+            <MenuItem value="recommended">Default order</MenuItem>
+            <MenuItem value="name">Produce name A–Z</MenuItem>
+          </TextField>
         </Stack>
         {listingError && !detail && <Alert severity="warning" onClose={() => setListingError('')}>{listingError}</Alert>}
         <Box role="status" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)' }}>{announcement}</Box>
-        <Typography component="h2" variant="subtitle1" fontWeight={750}>Available produce</Typography>
+        <Typography component="h2" variant="subtitle1" fontWeight={750}>Available produce{!loading && !catalogError ? ` (${visibleListings.length})` : ''}</Typography>
         {catalogError ? <Alert severity="error">{catalogError}</Alert> :
           <Box aria-busy={loading} sx={{
             display: 'grid', gap: { xs: 1.5, sm: 2.5 },
@@ -168,8 +172,11 @@ export default function ProduceMarketplace() {
           }}>
             {loading ? Array.from({ length: 4 }, (_, index) =>
               <Skeleton key={index} variant="rounded" sx={{ height: 'auto', aspectRatio: '3 / 4', borderRadius: 3 }} />
-            ) : listings.length === 0 ? <Typography sx={{ gridColumn: '1 / -1' }}>No matching in-stock listings.</Typography> :
-              listings.map(listing => <Card key={listing.id} component="article" variant="outlined" sx={{
+            ) : visibleListings.length === 0 ? <Stack sx={{ gridColumn: '1 / -1', p: 2 }} alignItems="flex-start">
+              <Typography>No matching in-stock listings.</Typography>
+              {search && <Button onClick={() => setSearch('')}>Clear search</Button>}
+            </Stack> :
+              visibleListings.map(listing => <Card key={listing.id} component="article" variant="outlined" sx={{
                 display: 'flex', flexDirection: 'column', borderRadius: 3,
                 transition: 'box-shadow 180ms ease, border-color 180ms ease',
                 '&:hover, &:focus-within': { boxShadow: 3, borderColor: 'primary.light' },

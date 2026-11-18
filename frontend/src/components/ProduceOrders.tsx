@@ -272,11 +272,10 @@ export default function ProduceOrders({
     <Stack spacing={3}>
       <Box>
         <Typography variant="overline" color="primary">Farm-to-kitchen sourcing</Typography>
-        <Typography variant="h4">Produce orders</Typography>
-        <Typography color="text.secondary">Choose how fresh produce reaches your kitchen. No courier marketplace, no surprise delivery charges.</Typography>
+        <Typography component="h2" variant="h5">Orders & quotes</Typography>
+        <Typography color="text.secondary">Review pickup orders and manage custom requests with farms.</Typography>
       </Box>
-      <Alert severity="info">Review the produce price and any delivery fee before accepting. Accepting a new quote reserves stock but does not charge you. Pay the farmer directly.</Alert>
-      <Alert severity="info">Requests do not reserve farmer stock. Accepting a new quote rechecks availability and reserves stock.</Alert>
+      <Alert severity="info">A custom request does not reserve stock. Review the price and any delivery fee before accepting a quote. Acceptance reserves available stock; you pay the farmer directly.</Alert>
       {error && <Alert severity="error" role="alert"
         action={!signedIn ? <Button color="inherit" href="/signin?next=/dashboard/produce-orders">Sign in</Button> : undefined}>
         {!signedIn ? 'Sign in to your Menurithm account to request produce and review your farmer quotes.' : error}

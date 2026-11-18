@@ -15,8 +15,10 @@ import {
   LinearProgress,
   CircularProgress,
   Divider,
+  Stack,
 } from '@mui/material';
 import { advancedInventoryAPI, type AIAnalytics, type SmartAlert } from '../api/advancedInventory';
+import { PageHeading, WorkspaceIcon } from './WorkspaceUI';
 
 interface AIAnalyticsDashboardProps {
   onOptimizationRequest?: () => void;
@@ -87,17 +89,17 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
 
   if (loading && !analytics) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-        <Typography variant="h6" sx={{ ml: 2 }}>
-          Loading AI Analytics...
-        </Typography>
-      </Box>
+      <>
+        <PageHeading icon="chart" title="Analytics" description="Review inventory insights, priority alerts, and cost-saving estimates." />
+        <CircularProgress aria-label="Loading analytics" />
+      </>
     );
   }
 
   if (error) {
     return (
+      <>
+      <PageHeading icon="chart" title="Analytics" description="Review inventory insights, priority alerts, and cost-saving estimates." />
       <Alert severity="error" action={
         <Button color="inherit" size="small" onClick={loadAIData}>
           Retry
@@ -105,29 +107,24 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
       }>
         {error}
       </Alert>
+      </>
     );
   }
 
   return (
     <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          🤖 AI Analytics Dashboard
-        </Typography>
-        <Box>
-          <Button 
+      <PageHeading icon="chart" title="Analytics" description="Review inventory insights, priority alerts, and cost-saving estimates."
+        actions={<Stack direction="row" gap={1} flexWrap="wrap">
+          {onVoiceCommandStart && <Button
             variant="outlined" 
             onClick={onVoiceCommandStart}
-            sx={{ mr: 1 }}
           >
-            🎤 Voice Commands
-          </Button>
+            Voice commands
+          </Button>}
           <Button variant="outlined" onClick={loadAIData} disabled={loading}>
-            🔄 Refresh
+            Refresh
           </Button>
-        </Box>
-      </Box>
+        </Stack>} />
 
       {lastUpdated && (
         <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
@@ -213,7 +210,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', overflow: 'auto' }}>
             <Typography variant="h6" gutterBottom>
-              🚨 Smart Alerts
+              Priority alerts
             </Typography>
             
             {alerts.length === 0 ? (
@@ -269,7 +266,7 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, height: '400px', overflow: 'auto' }}>
             <Typography variant="h6" gutterBottom>
-              ✨ Cost Saving Opportunities
+              Cost-saving opportunities
             </Typography>
             
             {analytics?.top_cost_saving_opportunities?.length ? (
@@ -322,21 +319,16 @@ export const AIAnalyticsDashboard: React.FC<AIAnalyticsDashboardProps> = ({
                 color="primary"
                 onClick={handleOptimization}
                 disabled={loading}
+                startIcon={<WorkspaceIcon name="chart" />}
               >
-                ✨ Run Full Optimization
+                Run optimization
               </Button>
-              <Button
+              {onVoiceCommandStart && <Button
                 variant="outlined"
                 onClick={onVoiceCommandStart}
               >
-                🎤 Voice Commands
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => window.open('/advanced-reports', '_blank')}
-              >
-                📊 Advanced Reports
-              </Button>
+                Voice commands
+              </Button>}
             </Box>
           </Paper>
         </Grid>

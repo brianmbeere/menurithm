@@ -5,8 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import SignUpForm from "./components/SignUpForm";
 import SignInForm from "./components/SignInForm";
-import AccountSettings from "./components/AccountSettings";
 import PageFrame from "./pages/PageFrame";
+import NotFound from "./pages/NotFound";
 import CSVDemoPage from "./components/CSVDemoPage";
 import { theme } from "./branding";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -44,11 +44,8 @@ function App() {
             } />
           <Route path="/signup" element={<SignUpForm />} />
           <Route path="/signin" element={<SignInForm />} />
-          <Route path="/account" element={
-            <ProtectedRoute> 
-              <AccountSettings /> 
-            </ProtectedRoute>} />
-          <Route path="*" element={<div>404 Not Found</div>} />
+          <Route path="/account" element={<ProtectedRoute><PageFrame /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </ThemeProvider>

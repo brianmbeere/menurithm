@@ -6,7 +6,9 @@ import { theme } from '../src/branding';
 import PageFrame from '../src/pages/PageFrame';
 
 await auth.authStateReady();
-Object.defineProperty(auth, 'currentUser', { get: () => ({ getIdToken: async () => 'fixture-only' }) });
+Object.defineProperty(auth, 'currentUser', { get: () => ({
+  getIdToken: async () => 'fixture-only', displayName: 'Fixture Kitchen', email: 'kitchen@example.com', emailVerified: true,
+}) });
 let orders = [{
   id: 1, request_id: 101, restaurant_name: 'Pilot fixture kitchen', produce_type: 'Tomatoes',
   quantity_needed: 10, unit: 'kg', method: 'farmer_delivery', fee: '6.25', currency: 'USD',
@@ -18,7 +20,12 @@ let orders = [{
 const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
   const url = String(input);
-  if (url.endsWith('/inventory')) return Response.json([]);
+  if (/\/(inventory(?:\/summary|\/low-stock)?|sales|dishes)$/.test(url)) return Response.json([]);
+  if (url.endsWith('/advanced-inventory/analytics')) return Response.json({
+    optimization_score: 72, cost_savings_potential: '$40', waste_reduction_percentage: 8,
+    top_cost_saving_opportunities: [],
+  });
+  if (url.includes('/advanced-inventory/alerts?')) return Response.json({ alerts: [] });
   if (!url.includes('/api/fulfillment/')) return originalFetch(input, init);
   if (url.includes('/produce/available')) return Response.json([
     { id: 501, seller_id: 1, seller_name: 'Fixture Farmer', produce_type: 'Tomatoes', quantity_available: 20,

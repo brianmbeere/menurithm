@@ -15,9 +15,10 @@ Menurithm processes operational data such as inventory levels and historical usa
 
 ## Pickup and farmer-delivery pilot
 
-Open **Produce orders** in the dashboard, inventory's produce-order dialog,
-or **Service Integration → Croprithm produce**. All three use the same persistent
-order workflow. Request customer pickup or farmer delivery with a preferred
+Open **Purchasing → Produce marketplace** to shop listings and track orders.
+For a custom request, open **Orders & quotes**, use **Source produce** in
+Inventory, or open **Integrations → Croprithm produce**. These paths use the
+same persistent quote workflow. Request customer pickup or farmer delivery with a preferred
 window and handling requirements. Delivery requires an address; pickup does not.
 
 A farmer quotes the fulfillment method they can offer, pickup address where

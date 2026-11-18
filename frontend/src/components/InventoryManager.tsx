@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   CardContent, Typography, Table, TableHead, TableRow,Autocomplete,
   TableCell, TableBody, TextField, IconButton, Button, Grid,
-  Divider, TablePagination, Tooltip, Snackbar, Alert, Paper, Box,
-  Checkbox, Dialog, DialogTitle, DialogContent, DialogActions
+  TablePagination, Tooltip, Snackbar, Alert, Paper, Box,
+  Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, Accordion, AccordionSummary, AccordionDetails, Stack
 } from "@mui/material";
 import { Delete, Edit, Save, UploadFile, Add } from "./SVGIcons";
+import { PageHeading, WorkspaceIcon } from "./WorkspaceUI";
 import { updateInventory, type InventoryItem } from "../api/updateInventory";
 import deleteInventory from "../api/deleteInventory";
 import uploadInventoryFile from "../api/uploadInventoryFile";
@@ -261,13 +262,11 @@ const InventoryManager = () => {
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper sx={{ mt: 4, p: 2 }}>
+    <Box>
+      <PageHeading icon="inventory" title="Inventory" description="Review ingredient stock, reorder points, and stock movement."
+        actions={<Button variant="contained" startIcon={<WorkspaceIcon name="shop" />} onClick={() => setProduceOrderDialogOpen(true)}>Source produce</Button>} />
+      <Paper variant="outlined">
       <CardContent>
-        <Typography variant="h5" fontWeight={600} gutterBottom color="primary">
-          Inventory Manager
-        </Typography>
-
-        <Divider sx={{ my: 2 }} />
         {lowStockItems.length > 0 && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             {lowStockItems.length} ingredient{lowStockItems.length === 1 ? "" : "s"} at or below your reorder point.
@@ -275,19 +274,20 @@ const InventoryManager = () => {
           </Alert>
         )}
 
-        {/* Upload Section */}
-        <Typography variant="subtitle1" gutterBottom>Upload Inventory CSV</Typography>
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 3 }} >
-            <TextField
+        <TextField
               fullWidth
-              placeholder="Search by name, category, or location"
+              label="Search ingredients"
+              placeholder="Name, category, or location"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               size="small"
+              sx={{ mb: 2 }}
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2 }} >
+        <Accordion disableGutters elevation={0} variant="outlined" sx={{ mb: 2 }}>
+          <AccordionSummary id="inventory-import-toggle" aria-controls="inventory-import-panel" expandIcon={<WorkspaceIcon name="down" />}>Import inventory from CSV</AccordionSummary>
+          <AccordionDetails>
+          <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: 3 }} >
             <Button
               variant="outlined"
               onClick={() => setShowCSVHelpDialog(true)}
@@ -297,14 +297,14 @@ const InventoryManager = () => {
               CSV Help
             </Button>
           </Grid>
-          <Grid size={{ xs: 12, sm: 3 }} >
+          <Grid size={{ xs: 12, sm: 5 }} >
             <Button
               variant="outlined"
               component="label"
               startIcon={<UploadFile />}
               fullWidth
             >
-              Choose CSV File
+              {csvFile ? "Change CSV file" : "Choose CSV file"}
               <input
                 type="file"
                 hidden
@@ -321,56 +321,39 @@ const InventoryManager = () => {
               startIcon={<UploadFile />}
               disabled={!csvFile}
             >
-              Upload
+              Import inventory
             </Button>
           </Grid>
         </Grid>
+        {csvFile && <Typography variant="body2" sx={{ mt: 1, overflowWrap: "anywhere" }}>{csvFile.name}</Typography>}
+        </AccordionDetails></Accordion>
 
-        {/* AI-Powered Features Section */}
-        <Divider sx={{ my: 2 }} />
-        <Typography variant="subtitle1" gutterBottom>🤖 AI-Powered Features</Typography>
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 2.4 }}>
+        <Accordion disableGutters elevation={0} variant="outlined" sx={{ mb: 2 }}>
+          <AccordionSummary id="inventory-tools-toggle" aria-controls="inventory-tools-panel" expandIcon={<WorkspaceIcon name="down" />}>Advanced inventory tools</AccordionSummary>
+          <AccordionDetails><Stack direction={{ xs: "column", sm: "row" }} gap={1} flexWrap="wrap">
             <Button
               variant="outlined"
-              fullWidth
               onClick={handleAIOptimization}
-              sx={{ color: 'primary.main' }}
+              startIcon={<WorkspaceIcon name="chart" />}
             >
-              ✨ AI Optimization
+              Run optimization
             </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
-              fullWidth
               onClick={handleAutoOrder}
-              sx={{ color: 'success.main' }}
+              startIcon={<WorkspaceIcon name="cart" />}
             >
-              🚛 Auto Order
+              Run auto-order tool
             </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2.4 }}>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => setProduceOrderDialogOpen(true)}
-              sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
-            >
-              🥬 Order Produce
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2.4 }}>
             <Button
               variant="outlined"
-              fullWidth
               onClick={handleSmartAlerts}
-              sx={{ color: 'warning.main' }}
+              startIcon={<WorkspaceIcon name="warning" />}
             >
-              🚨 Smart Alerts
+              Check priority alerts
             </Button>
-          </Grid>
-        </Grid>
+          </Stack></AccordionDetails>
+        </Accordion>
 
         {/* Bulk Actions Section */}
         {selectedItems.size > 0 && (
@@ -391,7 +374,7 @@ const InventoryManager = () => {
         )}
 
         {/* Table Section */}
-        <Box sx={{ overflowX: "auto" }}>
+        <Box role="region" aria-label="Ingredient stock table" tabIndex={0} sx={{ overflowX: "auto" }}>
           <Table size="small" sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
@@ -538,6 +521,7 @@ const InventoryManager = () => {
           rowsPerPageOptions={[10, 25, 50, 100]}
         />
       </CardContent>
+      </Paper>
 
       {/* CSV Help Dialog */}
       <CSVHelpDialog
@@ -599,7 +583,7 @@ const InventoryManager = () => {
           {snackbar?.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Box>
   );
 };
 

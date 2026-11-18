@@ -11,6 +11,8 @@ import { CloudUpload, GetApp } from './SVGIcons';
 import CSVUploadHelper from './CSVUploadHelper';
 import CSVHelpDialog from './CSVHelpDialog';
 import { type ValidationResult } from '../api/csvValidation';
+import PublicHeader from './PublicHeader';
+import { PageHeading } from './WorkspaceUI';
 
 const CSVDemoPage: React.FC = () => {
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
@@ -29,14 +31,11 @@ const CSVDemoPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom textAlign="center">
-        📊 CSV Upload Validation System Demo
-      </Typography>
-      
-      <Typography variant="h6" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
-        Test the smart CSV validation system for Menurithm
-      </Typography>
+    <Container maxWidth="lg" sx={{ pb: 4 }}>
+      <PublicHeader />
+      <Box sx={{ pt: 3 }}>
+        <PageHeading icon="upload" title="CSV import demo" description="Try the file checker and learn how to format inventory, dish, and sales imports. This demo does not save records." />
+      </Box>
 
       {lastValidation && (
         <Alert severity={lastValidation.valid ? 'success' : 'error'} sx={{ mb: 3 }}>

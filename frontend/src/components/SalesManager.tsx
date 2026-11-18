@@ -11,6 +11,7 @@ import { uploadSalesFile } from "../api/uploadSales";
 import { fetchSales, type Sale } from "../api/fetchSales";
 import { updateSale } from "../api/updateSale";
 import { Delete, Edit, UploadFile } from "./SVGIcons";
+import { PageHeading } from "./WorkspaceUI";
 import CSVHelpDialog from "./CSVHelpDialog";
 import { formatDate } from "../utils";
 
@@ -171,12 +172,10 @@ const SalesManager = () => {
   const paginatedSales = sales.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper elevation={4} sx={{ p: 4, mt: 4 }}>
-      <Typography variant="h5" fontWeight={700} color="primary" gutterBottom>
-        Sales Manager
-      </Typography>
-
-      <Divider sx={{ my: 2 }} />
+    <>
+    <PageHeading icon="sales" title="Sales" description="Record or import sales and review the sales you’ve already entered." />
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
+      <Typography component="h2" variant="h6" gutterBottom>{editSaleId === null ? "Record a sale" : "Edit sale"}</Typography>
 
       <Grid container spacing={2}>
         <Grid size={{ xs:6, sm:3, md:2 }}>
@@ -278,7 +277,7 @@ const SalesManager = () => {
         </Box>
       )}
       
-      <Box sx={{ overflowX: "auto" }}>
+      <Box role="region" aria-label="Sales history table" tabIndex={0} sx={{ overflowX: "auto" }}>
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -381,6 +380,7 @@ const SalesManager = () => {
         uploadType="sales"
       />
     </Paper>
+    </>
   );
 };
 

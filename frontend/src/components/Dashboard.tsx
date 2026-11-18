@@ -1,13 +1,13 @@
 import { useEffect,useState } from 'react'
 import {
   Typography,
-  Container,
   Grid,
   Paper,
   CircularProgress,
   Box,
   Alert,
   Button,
+  Stack,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -25,6 +25,8 @@ import {
 import fetchInventorySummary  from "../api/fetchInventorySummary";
 import { fetchSales } from "../api/fetchSales";
 import groupSalesByDay from '../hooks/groupSalesData';
+import { Link } from "react-router-dom";
+import { PageHeading, WorkspaceIcon } from "./WorkspaceUI";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -69,29 +71,30 @@ const Dashboard = () => {
 }, []);
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 6 }}>
-      {/* Header */}
-      <Typography
-        variant="h4"
-        fontWeight={700}
-        gutterBottom
-        color={theme.palette.primary.dark}
-      >
-        Dashboard Overview
-      </Typography>
-      <Typography
-        variant="body1"
-        color={theme.palette.text.secondary}
-        gutterBottom
-      >
-        Welcome to Menurithm, your intelligent menu planning assistant.
-      </Typography>
+    <Box>
+      <PageHeading icon="overview" title="Kitchen overview" description="Jump into daily tasks or review your kitchen activity."
+        actions={<Button component={Link} to="/dashboard/sales" variant="contained" startIcon={<WorkspaceIcon name="add" />}>Record a sale</Button>} />
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {([
+          ["inventory", "Review inventory", "Check ingredient stock and reorder points.", "/dashboard/inventory"],
+          ["dishes", "Manage recipes", "Update the ingredients used in each dish.", "/dashboard/dishes"],
+          ["shop", "Shop farm produce", "Browse Croprithm listings for pickup.", "/dashboard/produce-orders"],
+        ] as const).map(([icon, title, description, path]) => <Grid key={path} size={{ xs: 12, sm: 4 }}>
+          <Paper variant="outlined" sx={{ height: "100%" }}>
+            <Stack component={Link} to={path} spacing={0.75} sx={{ p: 2, height: "100%", color: "text.primary", textDecoration: "none", "&:hover": { bgcolor: "action.hover" } }}>
+              <Box sx={{ color: "primary.dark" }}><WorkspaceIcon name={icon} /></Box>
+              <Typography component="h2" fontWeight={750}>{title}</Typography>
+              <Typography variant="body2" color="text.secondary">{description}</Typography>
+            </Stack>
+          </Paper>
+        </Grid>)}
+      </Grid>
 
       {/* Charts */}
       <Grid container spacing={4} sx={{ mt: 2 }}>
         {/* Inventory Chart - now 6/12 wide */}
         <Grid size={{ xs:12, md:6}} sx={{ minWidth: 0 }}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
             <Typography variant="subtitle1" gutterBottom>
               Inventory Overview
             </Typography>
@@ -128,7 +131,7 @@ const Dashboard = () => {
 
         {/* Sales Chart - also 6/12 wide */}
         <Grid size={{ xs:12, md:6}} sx={{ minWidth: 0 }}>
-          <Paper elevation={2} sx={{ p: 3 }}>
+          <Paper variant="outlined" sx={{ p: 2.5 }}>
             <Typography variant="subtitle1" gutterBottom>
               Sales This Week
             </Typography>
@@ -163,7 +166,7 @@ const Dashboard = () => {
 
         {/* Suggested Dishes - full width */}
         <Grid size={{ xs:12}}>
-          <Paper elevation={2} sx={{ p: 3, textAlign: "center" }}>
+          <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
             <Typography variant="subtitle1" color={theme.palette.text.secondary}>
               Plan your next service
             </Typography>
@@ -173,11 +176,11 @@ const Dashboard = () => {
             <Typography variant="body2" color={theme.palette.text.secondary}>
               Review your inventory before building your next menu.
             </Typography>
-            <Button href="/dashboard/menu" variant="outlined" sx={{ mt: 2 }}>Open menu planning</Button>
+            <Button component={Link} to="/dashboard/menu" variant="outlined" sx={{ mt: 2 }}>Open menu planning</Button>
           </Paper>
         </Grid>
       </Grid>
-    </Container>
+    </Box>
 
   );
 };

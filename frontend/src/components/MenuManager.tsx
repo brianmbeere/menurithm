@@ -5,18 +5,18 @@ import {
   Typography,
   CircularProgress,
   Grid,
-  CardMedia,
   Button,
   Snackbar,
   Alert,
   Chip,
-  Divider,
   Box,
+  Stack,
 } from "@mui/material";
 import { getGeneratedMenuSmart } from "../api/menu";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { PageHeading, WorkspaceIcon } from "./WorkspaceUI";
 
 interface MenuItem {
   name: string;
@@ -61,53 +61,35 @@ const MenuManager: React.FC = () => {
   };
 
   return (
-    <motion.div className="p-6 max-w-6xl mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {/* Top Bar */}
-      <Card elevation={3} className="mb-6">
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Smart Menu Generator
-          </Typography>
+    <Box>
+      <PageHeading icon="menu" title="Menu planning" description="Generate a menu to review and export for your next service."
+        actions={<Stack direction="row" gap={1} flexWrap="wrap">
           <Button
             variant="contained"
             onClick={handleGenerateSmartMenu}
             disabled={smartLoading}
-            sx={{ mr: 2 }}
           >
             {smartLoading ? <CircularProgress size={24} /> : "Generate Menu"}
           </Button>
           {smartMenu.length > 0 && (
-            <Button variant="outlined" onClick={exportPDF}>
+            <Button variant="outlined" onClick={exportPDF} startIcon={<WorkspaceIcon name="download" />}>
               Export PDF
             </Button>
           )}
-        </CardContent>
-      </Card>
-
-      <Divider className="mb-6" />
+        </Stack>} />
+      {smartMenu.length === 0 && !smartLoading && <PaperEmpty />}
 
       {/* Menu Grid */}
       {smartMenu.length > 0 && (
         <Grid container spacing={4}>
           {smartMenu.map((item, index) => (
-            <Grid sx={{xs:12, sm:6}} key={index}>
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={index}>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card elevation={2} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                  {/* Dish Image or Icon */}
-                  {/** Assume image exists in /public/images/dishes/ */}
-                  <CardMedia
-                    component="img"
-                    height="160"
-                    image={`./placeholder-food.jpg`}
-                    alt={item.name}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "./placeholder-food.jpg";
-                    }}
-                  />
+                <Card variant="outlined" sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
                   <CardContent>
                     <Typography variant="h6" fontWeight="bold" gutterBottom>
                       {item.name}
@@ -146,8 +128,15 @@ const MenuManager: React.FC = () => {
           </Alert>
         </Snackbar>
       )}
-    </motion.div>
+    </Box>
   );
 };
 
 export default MenuManager;
+
+function PaperEmpty() {
+  return <Card variant="outlined"><CardContent>
+    <Typography component="h2" variant="h6">No menu generated yet</Typography>
+    <Typography color="text.secondary">Choose Generate menu to see suggested dishes and serving counts.</Typography>
+  </CardContent></Card>;
+}
