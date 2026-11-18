@@ -14,12 +14,15 @@ export interface InventoryItem {
 }
 
 
-export const updateInventory = async (item: InventoryItem) => {
-  const res = await authFetch(`${BASE_URL}/inventory/${item.ingredient_name}`, {
+export const updateInventory = async (item: InventoryItem, originalName = item.ingredient_name) => {
+  const res = await authFetch(`${BASE_URL}/inventory/${encodeURIComponent(originalName)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(item)
   });
-  if (!res.ok) throw new Error("Failed to update inventory");
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to update inventory");
+  }
   return res.json();
 };

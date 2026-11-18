@@ -3,8 +3,7 @@ import { BASE_URL } from "../utils";
 import { authFetch } from "../hooks/authFetch";
 
 
-const addInventory = async (item: InventoryItem) => {
-  console.log("Adding inventory item:", item);
+const addInventory = async (item: Omit<InventoryItem, "id">) => {
   const res = await authFetch (`${BASE_URL}/inventory`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12,7 +11,8 @@ const addInventory = async (item: InventoryItem) => {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to add inventory item");
+    const body = await res.json().catch(() => null);
+    throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to add inventory item");
   }
 
   return res.json();

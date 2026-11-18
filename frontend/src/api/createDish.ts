@@ -4,20 +4,20 @@ import type { Dish } from "./fetchDishes";
 
 export interface DishIngredientInput {
   ingredient_id: number;
-  quantity: number;
+  quantity: number | string;
   unit: string;
 }
 
 export interface DishInput {
   name: string;
   description?: string;
-  recipe_yield?: number | null;
+  recipe_yield?: number | string | null;
   ingredients: DishIngredientInput[];
 }
 
 export type DishOutput = Dish;
 
-export const createDish = async (dish: DishInput) => {
+export const createDish = async (dish: DishInput): Promise<DishOutput> => {
   const response = await authFetch (`${BASE_URL}/dishes`, {
     method: "POST",
     headers: {
@@ -27,7 +27,8 @@ export const createDish = async (dish: DishInput) => {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create dish");
+    const body = await response.json().catch(() => null);
+    throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to create dish");
   }
 
   return response.json();

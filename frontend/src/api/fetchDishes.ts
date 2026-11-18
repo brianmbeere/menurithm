@@ -12,8 +12,8 @@ export interface DishIngredient {
 export interface Dish {
   id: number;
   name: string;
-  description?: string;
-  recipe_yield?: number | null;
+  description?: string | null;
+  recipe_yield?: number | string | null;
   ingredients: DishIngredient[];
 }
 

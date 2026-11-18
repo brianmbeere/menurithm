@@ -3,7 +3,7 @@ import { authFetch } from "../hooks/authFetch";
 
 
 const deleteInventory = async (ingredient_name: string) => {
-  const res = await authFetch (`${BASE_URL}/inventory/${ingredient_name}`, {
+  const res = await authFetch (`${BASE_URL}/inventory/${encodeURIComponent(ingredient_name)}`, {
     method: "DELETE"
   });
   

@@ -97,8 +97,18 @@ quantity field. Existing sales are labeled as historical/unprocessed, not
 deducted. Edit and save legacy recipes to confirm their quantities and serving
 yield before processing new sales.
 
+In **Dishes & recipes**, search by dish or ingredient, or use **Needs recipe
+review** to find missing yields, unconfirmed quantities, and missing inventory
+links. Enter recipe quantities for the whole batch and specify how many
+servings it makes. The per-serving preview is approximate; the original batch
+amounts are saved. CSV import remains available below the dish library.
+
 Restaurant inventory items now support an optional reorder point. The Inventory
-screen flags stock at or below that threshold and can open a Croprithm listing
+screen offers **All ingredients**, **At reorder point**, and **Out of stock**
+views plus a storage-location filter. Choose **Count stock** to enter the total
+on hand and record a reason. Open an ingredient to review its movement history
+or edit its details. CSV import remains available below the stock list.
+The screen flags stock at or below the threshold and can open a Croprithm listing
 search for the ingredient. Selecting a listing opens a request; stock is
 reserved when the restaurant accepts the farmer's new quote. When the farmer
 marks handover complete, the restaurant can confirm the actual quantity received

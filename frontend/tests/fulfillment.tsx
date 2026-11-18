@@ -4,6 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { auth } from '../src/hooks/initializeFirebase';
 import { theme } from '../src/branding';
 import PageFrame from '../src/pages/PageFrame';
+import type { InventoryItem } from '../src/api/updateInventory';
+import type { InventoryMovement } from '../src/api/fetchInventoryMovements';
+import type { Dish } from '../src/api/fetchDishes';
+import type { DishInput } from '../src/api/createDish';
 
 await auth.authStateReady();
 Object.defineProperty(auth, 'currentUser', { get: () => ({
@@ -18,8 +22,91 @@ let orders = [{
   produce_total: '30.00', sale_total: '36.25', stock_reserved: false,
 }];
 const originalFetch = window.fetch.bind(window);
+const params = new URLSearchParams(location.search);
+let simulateStockChange = params.has('stock-change');
+let stockReads = 0;
+const stock: InventoryItem[] = [
+  { id: 1, ingredient_name: 'tomatoes', quantity: '2', reorder_point: '4', unit: 'lb', category: 'Vegetables', expiry_date: '2099-12-01', storage_location: 'Fridge' },
+  { id: 2, ingredient_name: 'flour', quantity: '10', reorder_point: '3', unit: 'lb', category: 'Grains', expiry_date: '2099-12-01', storage_location: 'Pantry' },
+  { id: 3, ingredient_name: 'basil', quantity: '0', reorder_point: '0', unit: 'bunch', category: 'Herbs', expiry_date: '2099-12-01', storage_location: 'Fridge' },
+];
+const movements: Record<string, InventoryMovement[]> = {};
+let nextStockId = 4;
+let recipes: Dish[] = [
+  { id: 1, name: 'Tomato soup', recipe_yield: '8', ingredients: [
+    { ingredient_id: 1, quantity: 4, quantity_decimal: '4', unit: 'lb' },
+  ] },
+  { id: 2, name: 'Basil sauce', recipe_yield: null, ingredients: [
+    { ingredient_id: 3, quantity: 2, quantity_decimal: null, unit: 'bunch' },
+  ] },
+];
+let nextDishId = 3;
 window.fetch = async (input, init) => {
   const url = String(input);
+  if (params.has('recipes')) {
+    if (url.endsWith('/inventory')) return Response.json(stock);
+    if (url.endsWith('/dishes') && (!init?.method || init.method === 'GET')) return Response.json(recipes);
+    const match = url.match(/\/dishes\/(\d+)$/);
+    if (match && init?.method === 'DELETE') {
+      recipes = recipes.filter(dish => dish.id !== Number(match[1]));
+      return new Response(null, { status: 204 });
+    }
+    if ((match && init?.method === 'PUT') || (url.endsWith('/dishes') && init?.method === 'POST')) {
+      const body: DishInput = JSON.parse(String(init.body));
+      if (typeof body.recipe_yield !== 'string' || body.ingredients.some(line => typeof line.quantity !== 'string')) {
+        return Response.json({ detail: 'Recipe quantities must be sent as decimal strings in this fixture.' }, { status: 400 });
+      }
+      const saved: Dish = { ...body, id: match ? Number(match[1]) : nextDishId++,
+        ingredients: body.ingredients.map(line => ({
+          ...line, quantity: Number(line.quantity), quantity_decimal: line.quantity,
+        })) };
+      recipes = match ? recipes.map(dish => dish.id === saved.id ? saved : dish) : [...recipes, saved];
+      return Response.json(saved);
+    }
+  }
+  if (params.has('inventory')) {
+    if (url.endsWith('/inventory') && init?.method === 'POST') {
+      const item: InventoryItem = { ...JSON.parse(String(init.body)), id: nextStockId++ };
+      stock.push(item);
+      movements[item.ingredient_name] = [{ id: 1, sale_id: null, movement_type: 'adjustment',
+        quantity_change: item.quantity, quantity_before: '0', quantity_after: item.quantity,
+        unit: item.unit, reason: 'Initial inventory entry', created_at: '2026-11-18T16:00:00Z' }];
+      return Response.json(item);
+    }
+    if (url.endsWith('/inventory')) {
+      if (++stockReads === 2 && simulateStockChange) {
+        stock[0].quantity = '1';
+        simulateStockChange = false;
+      }
+      return Response.json(stock);
+    }
+    if (url.endsWith('/inventory/low-stock')) {
+      return Response.json(stock.filter(item => Number(item.reorder_point) > 0 && Number(item.quantity) <= Number(item.reorder_point)));
+    }
+    const target = url.match(/\/inventory\/([^/]+)(\/movements)?$/);
+    if (target) {
+      const name = decodeURIComponent(target[1]);
+      if (target[2]) return Response.json(movements[name] ?? []);
+      const item = stock.find(entry => entry.ingredient_name === name);
+      if (!item) return Response.json({ detail: 'Ingredient not found' }, { status: 404 });
+      if (init?.method === 'PUT') {
+        const { adjustment_reason: reason, ...updates } = JSON.parse(String(init.body));
+        if (item.quantity !== updates.quantity) {
+          if (!reason) return Response.json({ detail: 'Adjustment reason required' }, { status: 400 });
+          (movements[name] ??= []).unshift({ id: (movements[name]?.length ?? 0) + 1, sale_id: null, movement_type: 'adjustment',
+            quantity_change: String(Number(updates.quantity) - Number(item.quantity)), quantity_before: item.quantity,
+            quantity_after: updates.quantity, unit: item.unit, reason, created_at: '2026-11-18T16:00:00Z' });
+        }
+        Object.assign(item, updates);
+        return Response.json(item);
+      }
+      if (init?.method === 'DELETE') {
+        if (movements[name]?.length) return Response.json({ detail: 'This ingredient has stock movement history.' }, { status: 400 });
+        stock.splice(stock.indexOf(item), 1);
+        return new Response(null, { status: 204 });
+      }
+    }
+  }
   if (/\/(inventory(?:\/summary|\/low-stock)?|sales|dishes)$/.test(url)) return Response.json([]);
   if (url.endsWith('/advanced-inventory/analytics')) return Response.json({
     optimization_score: 72, cost_savings_potential: '$40', waste_reduction_percentage: 8,
@@ -81,4 +168,5 @@ window.fetch = async (input, init) => {
 };
 const root = document.getElementById('fixture');
 if (!root) throw new Error('Missing fixture root');
-createRoot(root).render(<ThemeProvider theme={theme}><CssBaseline /><MemoryRouter initialEntries={['/dashboard/produce-orders']}><PageFrame /></MemoryRouter></ThemeProvider>);
+const start = params.has('inventory') ? '/dashboard/inventory' : params.has('recipes') ? '/dashboard/dishes' : '/dashboard/produce-orders';
+createRoot(root).render(<ThemeProvider theme={theme}><CssBaseline /><MemoryRouter initialEntries={[start]}><PageFrame /></MemoryRouter></ThemeProvider>);

@@ -1,473 +1,371 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  Box, Typography, Button,
-  TextField, Grid, Table, TableHead, TableRow, TableCell,
-  TableBody, TablePagination, IconButton, Divider, Checkbox, Card, CardContent, Autocomplete, Collapse, Stack,
-  Snackbar, Alert
+  Accordion, AccordionDetails, AccordionSummary, Alert, Autocomplete, Box, Button, Checkbox, Chip,
+  CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Snackbar, Stack,
+  TablePagination, TextField, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
-import { type DishIngredient, fetchDishes } from "../api/fetchDishes";
-import { type DishOutput, type DishInput, createDish } from "../api/createDish";
-import deleteDish from "../api/deleteDish";
+import { Link } from "react-router-dom";
+import { fetchDishes, type Dish } from "../api/fetchDishes";
+import { createDish, type DishInput } from "../api/createDish";
 import { updateDish } from "../api/updateDish";
-import { Delete, Edit, ExpandLess, ExpandMore, UploadFile } from "./SVGIcons";
-import { PageHeading } from "./WorkspaceUI";
+import deleteDish from "../api/deleteDish";
 import fetchInventory from "../api/fetchInventory";
+import type { InventoryItem } from "../api/updateInventory";
 import uploadDishesFile from "../api/uploadDishesFile";
 import CSVHelpDialog from "./CSVHelpDialog";
+import { PageHeading, WorkspaceIcon } from "./WorkspaceUI";
 
-interface IngredientOption {
-  id: number;
-  ingredient_name: string;
-  unit: string;
-}
+type Line = { key: number; ingredientId: number | null; quantity: string; unit: string };
+type Draft = { id?: number; name: string; description: string; yield: string; lines: Line[]; review: boolean };
+type View = "all" | "review";
+const positiveDecimal = (value: string) =>
+  /^(?:\d{1,15}(?:\.\d{0,9})?|\.\d{1,9})$/.test(value.replace(/^0+(?=\d)/, "")) && Number(value) > 0;
+const needsReview = (dish: Dish, inventory: Map<number, InventoryItem> | null) =>
+  !(Number(dish.recipe_yield) > 0) || !dish.ingredients.length || dish.ingredients.some(line =>
+    line.quantity_decimal == null || !(Number(line.quantity_decimal) > 0) || !line.unit?.trim() ||
+    (inventory !== null && !inventory.has(line.ingredient_id)));
+const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
+const previewQuantity = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4 });
 
-type DishForm = Omit<DishInput, "recipe_yield"> & { recipe_yield: string };
-
-const IngredientInputs = ({
-  index, ing, onChange, ingredientOptions
-}: {
-  index: number;
-  ing: DishIngredient;
-  onChange: (index: number, field: keyof DishIngredient, value: any) => void;
-  ingredientOptions: IngredientOption[];
-}) => (
-  <>
-    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-      <Autocomplete
-        options={ingredientOptions}
-        getOptionLabel={(option) => option.ingredient_name}
-        value={ingredientOptions.find(opt => opt.id === ing.ingredient_id) || null}
-        onChange={(_, value) => onChange(index, "ingredient_id", value ? value.id : null)}
-        renderInput={(params) => <TextField {...params} label="Ingredient" />}
-      />
-    </Grid>
-    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-      <TextField fullWidth label="Ingredient quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
-    </Grid>
-    <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-      <TextField fullWidth label="Unit" value={ing.unit} onChange={(e) => onChange(index, "unit", e.target.value)} />
-    </Grid>
-  </>
-);
-
-const DishManager = () => {
-  const [dishes, setDishes] = useState<DishOutput[]>([]);
-  const [selectedDishes, setSelectedDishes] = useState<Set<number>>(new Set());
+export default function DishManager() {
+  const mobile = useMediaQuery(useTheme().breakpoints.down("sm"));
+  const [dishes, setDishes] = useState<Dish[]>([]);
+  const [stock, setStock] = useState<InventoryItem[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [dishError, setDishError] = useState("");
+  const [stockError, setStockError] = useState("");
   const [search, setSearch] = useState("");
-  const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
-  const [dishForm, setDishForm] = useState<DishForm>({
-    name: "",
-    description: "",
-    recipe_yield: "",
-    ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }]
-  });
-  const [editDishId, setEditDishId] = useState<number | null>(null);
-  const [showIngredients, setShowIngredients] = useState<boolean>(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [showCSVHelpDialog, setShowCSVHelpDialog] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" } | null>(null);
+  const [view, setView] = useState<View>("all");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [size, setSize] = useState(10);
+  const [selected, setSelected] = useState(new Set<number>());
+  const [detail, setDetail] = useState<Dish | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [formError, setFormError] = useState("");
+  const [remove, setRemove] = useState<Dish[] | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [csv, setCsv] = useState<File | null>(null);
+  const [csvHelp, setCsvHelp] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [notice, setNotice] = useState("");
+  const lineKey = useRef(0);
 
-  useEffect(() => {
-    fetchDishes().then(setDishes);
-    fetchInventory().then((data) => {
-      setIngredientOptions(data.map((item: any) => ({
-        id: item.id,
-        ingredient_name: item.ingredient_name,
-        unit: item.unit
-      })));
+  async function refresh() {
+    setLoading(true);
+    setDishError("");
+    setStockError("");
+    const [recipes, inventory] = await Promise.allSettled([fetchDishes(), fetchInventory()]);
+    if (recipes.status === "fulfilled") setDishes(recipes.value);
+    else setDishError(errorText(recipes.reason, "Could not load dishes."));
+    if (inventory.status === "fulfilled") setStock(inventory.value);
+    else {
+      setStock(null);
+      setStockError(errorText(inventory.reason, "Could not load inventory."));
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => { void refresh(); }, []);
+
+  const stockById = stock && new Map(stock.map(item => [item.id, item]));
+  const ingredientName = (line: Dish["ingredients"][number]) =>
+    stockById?.get(line.ingredient_id)?.ingredient_name || line.ingredient_name || `Ingredient #${line.ingredient_id}`;
+  const review = (dish: Dish) => needsReview(dish, stockById);
+  const query = search.trim().toLowerCase();
+  const filtered = dishes.filter(dish =>
+    (view === "all" || review(dish)) &&
+    [dish.name, dish.description, ...dish.ingredients.map(ingredientName)].some(value => value?.toLowerCase().includes(query)),
+  ).sort((a, b) => a.name.localeCompare(b.name));
+  const activePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / size) - 1));
+  const visible = filtered.slice(activePage * size, (activePage + 1) * size);
+  const selectedDishes = dishes.filter(dish => selected.has(dish.id));
+  const visibleSelected = visible.filter(dish => selected.has(dish.id)).length;
+
+  function setFilter(next: View, term: string) {
+    setView(next);
+    setSearch(term);
+    setPage(0);
+    setSelected(new Set());
+  }
+
+  function select(ids: number[], checked: boolean) {
+    setSelected(previous => {
+      const next = new Set(previous);
+      for (const id of ids) checked ? next.add(id) : next.delete(id);
+      return next;
     });
-  }, []);
+  }
 
-  // Memoized filtered and paginated dishes for better performance
-  const filteredDishes = useMemo(() => {
-    return dishes.filter((dish) => 
-      dish.name.toLowerCase().includes(search.toLowerCase()) ||
-      (dish.description && dish.description.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [dishes, search]);
+  function blankLine(): Line {
+    return { key: ++lineKey.current, ingredientId: null, quantity: "", unit: "" };
+  }
 
-  const paginatedDishes = useMemo(() => {
-    return filteredDishes.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [filteredDishes, page, rowsPerPage]);
-
-  const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
-
-  const handleDishChange = (field: keyof DishForm, value: string) => {
-    setDishForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleIngredientChange = (index: number, field: keyof DishIngredient, value: any) => {
-    const ingredients = [...dishForm.ingredients];
-    ingredients[index] = { ...ingredients[index], [field]: value };
-    // If ingredient_id changes, update unit to default from inventory
-    if (field === "ingredient_id") {
-      const found = ingredientOptions.find(opt => opt.id === value);
-      if (found) ingredients[index].unit = found.unit;
-    }
-    setDishForm({ ...dishForm, ingredients });
-  };
-
-  const addIngredientField = () => {
-    setDishForm({ ...dishForm, ingredients: [...dishForm.ingredients, { ingredient_id: 0, quantity: 1, unit: "" }] });
-  };
-
-  const resetForm = () => {
-    setDishForm({ name: "", description: "", recipe_yield: "", ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }] });
-    setEditDishId(null);
-    setShowIngredients(false);
-  };
-
-  const submitDish = async () => {
-    try {
-      const recipeYield = Number(dishForm.recipe_yield);
-      if (!Number.isFinite(recipeYield) || recipeYield <= 0) {
-        showSnackbar("Enter how many servings the ingredient quantities make.", "error");
-        return;
-      }
-      if (dishForm.ingredients.some(ingredient =>
-        !ingredient.ingredient_id || !Number.isFinite(ingredient.quantity) || ingredient.quantity <= 0 || !ingredient.unit.trim()
-      )) {
-        showSnackbar("Choose an ingredient and enter a positive quantity and unit for each recipe line.", "error");
-        return;
-      }
-      const payload: DishInput = {
-        ...dishForm,
-        recipe_yield: recipeYield,
-        ingredients: dishForm.ingredients.map(ing => ({
-          ingredient_id: ing.ingredient_id,
-          quantity: ing.quantity,
-          unit: ing.unit,
-        })),
-      };
-      if (editDishId !== null) {
-        const updated = await updateDish(editDishId, payload);
-        setDishes(prev => prev.map(d => (d.id === editDishId ? updated : d)));
-        showSnackbar("Dish updated!", "success");
-      } else {
-        const newDish = await createDish(payload);
-        setDishes(prev => [...prev, newDish]);
-        showSnackbar("Dish created!", "success");
-      }
-      resetForm();
-    } catch (err: any) {
-      showSnackbar(err.message, "error");
-    }
-  };
-
-  const removeIngredientField = (index: number) => {
-    const ingredients = [...dishForm.ingredients];
-    ingredients.splice(index, 1);
-    setDishForm({ ...dishForm, ingredients });
-  };
-
-  const handleEdit = (dish: DishOutput) => {
-    setDishForm({
-      name: dish.name,
-      description: dish.description,
-      recipe_yield: dish.recipe_yield?.toString() || "",
-      ingredients: dish.ingredients.map(ing => ({
-        ingredient_id: ing.ingredient_id,
-        quantity: Number(ing.quantity_decimal ?? ing.quantity),
-        unit: ing.unit
-      }))
+  function edit(dish?: Dish) {
+    setDetail(null);
+    setFormError("");
+    setDraft({
+      id: dish?.id, name: dish?.name ?? "", description: dish?.description ?? "",
+      yield: dish?.recipe_yield == null ? "" : String(dish.recipe_yield), review: !!dish && review(dish),
+      lines: dish?.ingredients.length ? dish.ingredients.map(line => ({
+        key: ++lineKey.current, ingredientId: line.ingredient_id,
+        quantity: String(line.quantity_decimal ?? line.quantity), unit: line.unit ?? "",
+      })) : [blankLine()],
     });
-    setEditDishId(dish.id);
-    setShowIngredients(true);
-  };
+  }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this dish?")) return;
+  function changeLine(key: number, patch: Partial<Line>) {
+    setDraft(current => current && ({ ...current, lines: current.lines.map(line => line.key === key ? { ...line, ...patch } : line) }));
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!draft || busy || stock === null) return;
+    setFormError("");
+    if (!draft.name.trim()) return setFormError("Enter a dish name.");
+    if (!positiveDecimal(draft.yield.trim())) return setFormError("Enter a positive batch yield with up to 15 whole-number digits and 9 decimal places.");
+    const ingredients: DishInput["ingredients"] = [];
+    for (const [index, line] of draft.lines.entries()) {
+      if (line.ingredientId === null || !stockById?.has(line.ingredientId) || !positiveDecimal(line.quantity.trim()) || !line.unit.trim()) {
+        return setFormError(`Ingredient ${index + 1}: choose an inventory item, enter a positive quantity with up to 15 whole-number digits and 9 decimal places, and specify a unit.`);
+      }
+      ingredients.push({ ingredient_id: line.ingredientId, quantity: line.quantity.trim(), unit: line.unit.trim() });
+    }
+    if (!ingredients.length) return setFormError("Add at least one ingredient.");
+    setBusy(true);
     try {
-      await deleteDish(id);
-      setDishes(prev => prev.filter(d => d.id !== id));
-      showSnackbar("Dish deleted!", "success");
-    } catch (err: any) {
-      showSnackbar(err.message, "error");
-    }
-  };
+      const payload: DishInput = { name: draft.name.trim(), description: draft.description.trim(), recipe_yield: draft.yield.trim(), ingredients };
+      const saved = draft.id === undefined ? await createDish(payload) : await updateDish(draft.id, payload);
+      setDishes(previous => draft.id === undefined ? [...previous, saved] : previous.map(dish => dish.id === draft.id ? saved : dish));
+      setDraft(null);
+      setNotice(draft.id === undefined ? "Dish added." : "Recipe saved.");
+    } catch (error) {
+      setFormError(errorText(error, "Could not save this recipe."));
+    } finally { setBusy(false); }
+  }
 
-  const handleCSVUploadDish = async () => {
-   if (!csvFile) return;
+  function confirmDelete(targets: Dish[]) {
+    setDetail(null);
+    setDeleteError("");
+    setRemove(targets);
+  }
+
+  async function deleteSelected() {
+    if (!remove || busy) return;
+    setBusy(true);
+    setDeleteError("");
+    const results = await Promise.allSettled(remove.map(dish => deleteDish(dish.id)));
+    const deleted = new Set(remove.filter((_, index) => results[index].status === "fulfilled").map(dish => dish.id));
+    const failed = remove.filter(dish => !deleted.has(dish.id));
+    setDishes(previous => previous.filter(dish => !deleted.has(dish.id)));
+    select([...deleted], false);
+    setRemove(failed.length ? failed : null);
+    if (failed.length) setDeleteError(results.flatMap((result, index) => result.status === "rejected"
+      ? [`${remove[index].name}: ${errorText(result.reason, "Could not delete dish.")}`] : []).join("\n"));
+    if (deleted.size) setNotice(`${deleted.size} ${deleted.size === 1 ? "dish" : "dishes"} deleted.`);
+    setBusy(false);
+  }
+
+  async function importCsv() {
+    if (!csv || busy) return;
+    setBusy(true);
+    setImportError("");
     try {
-      console.log('🔄 Starting CSV upload...', csvFile.name);
-      const uploadResult = await uploadDishesFile(csvFile);
-      console.log('📤 Upload result:', uploadResult);
-      
-      setCsvFile(null);
-      
-      console.log('🔄 Fetching updated dishes...');
-      const updated = await fetchDishes();
-      console.log('📥 Fetched dishes:', updated.length, 'dishes');
-      
-      setDishes(updated);
-      showSnackbar("CSV uploaded successfully!", "success");
-    } catch (err: any) {
-      console.error('❌ Upload error:', err);
-      showSnackbar(err.message, "error");
-    }
-  };
+      const result = await uploadDishesFile(csv);
+      setCsv(null);
+      setNotice(result.summary ?? "Dishes imported.");
+      await refresh();
+    } catch (error) {
+      setImportError(errorText(error, "Could not import dishes."));
+    } finally { setBusy(false); }
+  }
 
-  const handleSelectDish = (dishId: number) => {
-    const newSelected = new Set(selectedDishes);
-    if (newSelected.has(dishId)) {
-      newSelected.delete(dishId);
-    } else {
-      newSelected.add(dishId);
-    }
-    setSelectedDishes(newSelected);
-  };
-
-  const handleSelectAllDishes = () => {
-    if (selectedDishes.size === paginatedDishes.length) {
-      setSelectedDishes(new Set());
-    } else {
-      setSelectedDishes(new Set(paginatedDishes.map(dish => dish.id)));
-    }
-  };
-
-  const handleBulkDeleteDishes = async () => {
-    if (selectedDishes.size === 0) return;
-    
-    if (!confirm(`Are you sure you want to delete ${selectedDishes.size} dishes?`)) {
-      return;
-    }
-
-    try {
-      const deletePromises = Array.from(selectedDishes).map(dishId => 
-        deleteDish(dishId)
-      );
-      await Promise.all(deletePromises);
-      
-      setDishes(prev => prev.filter(dish => !selectedDishes.has(dish.id)));
-      setSelectedDishes(new Set());
-      showSnackbar(`Successfully deleted ${selectedDishes.size} dishes`, "success");
-    } catch (err: any) {
-      showSnackbar("Some dishes failed to delete", "error");
-    }
-  };
-
-
-  return (
-    <>
-    <PageHeading icon="dishes" title="Dishes & recipes" description="Build recipes and set how much of each ingredient a serving uses." />
-    <Card variant="outlined">
-      <CardContent>
-        <Typography component="h2" variant="subtitle1" fontWeight={700} gutterBottom>Find or import dishes</Typography>
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, sm: 3 }} >
-            <TextField
-              fullWidth
-              label="Search dishes"
-              placeholder="Search by name or description"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0); // Reset to first page when searching
-              }}
-              size="small"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2 }} >
-            <Button
-              variant="outlined"
-              onClick={() => setShowCSVHelpDialog(true)}
-              fullWidth
-              size="small"
-            >
-              CSV Help
+  return <Box>
+    <PageHeading icon="dishes" title="Dishes & recipes" description="Browse your dishes, build batch recipes, and link their ingredients to kitchen inventory."
+      actions={<Button variant="contained" startIcon={<WorkspaceIcon name="add" />} onClick={() => edit()}>Add dish</Button>} />
+    <Stack spacing={2.5}>
+      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+        <Stack spacing={1.5} sx={{ p: 2 }}>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            <Button variant={view === "all" ? "contained" : "outlined"} aria-pressed={view === "all"} onClick={() => setFilter("all", search)}>
+              All dishes {!loading && !dishError && `(${dishes.length})`}
             </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 3 }} >
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<UploadFile />}
-              fullWidth
-            >
-              Choose CSV File
-              <input
-                type="file"
-                hidden
-                accept=".csv"
-                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-              />
+            <Button variant={view === "review" ? "contained" : "outlined"} aria-pressed={view === "review"} onClick={() => setFilter("review", search)}>
+              Needs recipe review {!loading && !dishError && `(${dishes.filter(review).length})`}
             </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }} >
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={handleCSVUploadDish}
-              startIcon={<UploadFile />}
-              disabled={!csvFile}
-            >
-              Import dishes
-            </Button>
-          </Grid>
-        </Grid>
-
-        <Divider sx={{ my: 2 }} />
-        <Typography component="h2" variant="h6" gutterBottom>
-          {editDishId !== null ? "Edit dish" : "Create a dish"}
-        </Typography>
-
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-            <TextField fullWidth label="Dish Name" value={dishForm.name} onChange={(e) => handleDishChange("name", e.target.value)} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-            <TextField fullWidth label="Description" value={dishForm.description} onChange={(e) => handleDishChange("description", e.target.value)} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              required
-              label="Servings made by this recipe"
-              type="number"
-              value={dishForm.recipe_yield}
-              slotProps={{ htmlInput: { min: 0.000001, step: "any" } }}
-              helperText="Ingredient quantities below are for this many servings. Existing recipes need this confirmed before sales can deduct stock."
-              onChange={(e) => handleDishChange("recipe_yield", e.target.value)}
-            />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <Button onClick={() => setShowIngredients(prev => !prev)} startIcon={showIngredients ? <ExpandLess /> : <ExpandMore />}>
-              {showIngredients ? "Hide Ingredients" : "Add Ingredients"}
-            </Button>
-          </Grid>
-          <Collapse in={showIngredients} timeout={400} style={{ width: "100%" }}>
-            <Grid container spacing={2}>
-             {dishForm.ingredients.map((ing, i) => (
-              <Stack key={i} spacing={2} direction="column">
-                <IngredientInputs index={i} ing={ing} onChange={handleIngredientChange} ingredientOptions={ingredientOptions} />
-                <Button onClick={() => removeIngredientField(i)}>Remove</Button>
-              </Stack>
-            ))}
-              <Grid size={{ xs: 12 }}>
-                <Button onClick={addIngredientField}>Add Ingredient</Button>
-              </Grid>
-            </Grid>
-          </Collapse>
-          <Grid size={{ xs: 12 }}>
-            <Button variant="contained" onClick={submitDish} sx={{ mt: 2 }}>
-              {editDishId !== null ? "Update Dish" : "Save Dish"}
-            </Button>
-            {editDishId !== null && (
-              <Button onClick={resetForm} sx={{ ml: 2, mt: 2 }}>
-                Cancel
-              </Button>
-            )}
-          </Grid>
-        </Grid>
-
-        <Divider sx={{ my: 3 }} />
-
-        <Typography variant="h6" gutterBottom>
-          Dishes
-        </Typography>
-
-        {selectedDishes.size > 0 && (
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'action.selected', borderRadius: 1 }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              {selectedDishes.size} dish{selectedDishes.size > 1 ? 'es' : ''} selected
-            </Typography>
-            <Button 
-              variant="outlined" 
-              color="error" 
-              size="small"
-              onClick={handleBulkDeleteDishes}
-              startIcon={<Delete />}
-            >
-              Delete Selected
-            </Button>
+          </Stack>
+          <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
+            <TextField fullWidth size="small" label="Search dishes" placeholder="Dish name, description, or ingredient"
+              value={search} onChange={event => setFilter(view, event.target.value)} />
+            <Button onClick={() => void refresh()} disabled={loading || busy}>Refresh</Button>
+          </Stack>
+          {(dishError || stockError) && <Alert severity={dishError ? "error" : "warning"}>{dishError || `${stockError} Inventory links cannot be checked right now.`}</Alert>}
+          {selectedDishes.length > 0 && <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+            <Typography role="status">{selectedDishes.length} selected</Typography>
+            <Button color="error" onClick={() => confirmDelete(selectedDishes)}>Delete selected</Button>
+            <Button onClick={() => setSelected(new Set())}>Clear selection</Button>
+          </Stack>}
+          {loading && <CircularProgress size={24} aria-label="Loading recipes" />}
+          {!loading && !dishError && visible.length === 0 && <Stack alignItems="flex-start" spacing={1}>
+            <Typography component="h2" variant="h6">{dishes.length ? "No dishes match this view" : "No dishes yet"}</Typography>
+            <Typography color="text.secondary">{dishes.length ? "Try a different search or show all dishes." : "Add a dish or import recipes from CSV."}</Typography>
+            {dishes.length > 0 && <Button onClick={() => setFilter("all", "")}>Clear filters</Button>}
+          </Stack>}
+        </Stack>
+        {visible.length > 0 && <>
+          <Stack direction="row" alignItems="center" sx={{ bgcolor: "background.default", px: 1.5 }}>
+            <Checkbox size="small" checked={visibleSelected === visible.length} indeterminate={visibleSelected > 0 && visibleSelected < visible.length}
+              onChange={(_, checked) => select(visible.map(dish => dish.id), checked)}
+              slotProps={{ input: { "aria-label": "Select dishes on this page" } }} />
+            <Typography variant="caption" fontWeight={700}>Dish library</Typography>
+          </Stack>
+          <Box component="ul" aria-label="Dish library" sx={{ listStyle: "none", p: 0, m: 0 }}>
+            {visible.map(dish => <Box component="li" key={dish.id} sx={{ display: "grid", gap: 1,
+              gridTemplateColumns: { xs: "auto minmax(0, 1fr)", sm: "auto minmax(0, 1fr) auto" }, alignItems: "center",
+              p: 1.5, borderTop: 1, borderColor: "divider", overflowWrap: "anywhere",
+              bgcolor: selected.has(dish.id) ? "action.selected" : undefined }}>
+              <Checkbox size="small" checked={selected.has(dish.id)} onChange={(_, checked) => select([dish.id], checked)}
+                slotProps={{ input: { "aria-label": `Select ${dish.name}` } }} />
+              <Box>
+                <Button aria-haspopup="dialog" onClick={() => setDetail(dish)} sx={{ p: 0, minWidth: 0, textAlign: "left", color: "text.primary", fontWeight: 750 }}>{dish.name}</Button>
+                {dish.description && <Typography variant="body2" color="text.secondary" noWrap>{dish.description}</Typography>}
+                <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">{Number(dish.recipe_yield) > 0 ? `${dish.recipe_yield} servings per batch` : "Yield not set"} · {dish.ingredients.length} {dish.ingredients.length === 1 ? "ingredient" : "ingredients"}</Typography>
+                  {review(dish) && <Chip size="small" color="warning" label="Needs recipe review" />}
+                </Stack>
+              </Box>
+              <Button variant="outlined" size="small" aria-label={`Edit recipe for ${dish.name}`} onClick={() => edit(dish)}
+                sx={{ gridColumn: { xs: 2, sm: "auto" }, justifySelf: "start" }}>Edit recipe</Button>
+            </Box>)}
           </Box>
-        )}
+          <TablePagination component="div" count={filtered.length} page={activePage} rowsPerPage={size} rowsPerPageOptions={[10, 25, 50]}
+            onPageChange={(_, next) => setPage(next)} onRowsPerPageChange={event => { setSize(Number(event.target.value)); setPage(0); }}
+            sx={{ "& .MuiTablePagination-toolbar": { flexWrap: "wrap", justifyContent: "flex-end", px: 1 } }} />
+        </>}
+      </Paper>
+      <Accordion variant="outlined" disableGutters elevation={0}>
+        <AccordionSummary id="dish-import-toggle" aria-controls="dish-import-panel" expandIcon={<WorkspaceIcon name="down" />}>Import dishes from CSV</AccordionSummary>
+        <AccordionDetails>
+          <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
+            <Button variant="outlined" onClick={() => setCsvHelp(true)}>CSV help</Button>
+            <Button variant="outlined" component="label" startIcon={<WorkspaceIcon name="upload" />}>
+              {csv ? "Change CSV file" : "Choose CSV file"}
+              <input type="file" hidden accept=".csv" onChange={event => {
+                setCsv(event.currentTarget.files?.[0] ?? null);
+                event.currentTarget.value = "";
+              }} />
+            </Button>
+            <Button variant="contained" disabled={!csv || busy} onClick={() => void importCsv()}>Import dishes</Button>
+          </Stack>
+          {csv && <Typography sx={{ mt: 1, overflowWrap: "anywhere" }}>{csv.name}</Typography>}
+          {importError && <Alert severity="error" sx={{ mt: 1 }}>{importError}</Alert>}
+        </AccordionDetails>
+      </Accordion>
+    </Stack>
 
-        <Box role="region" aria-label="Dish list table" tabIndex={0} sx={{ overflowX: "auto" }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedDishes.size === paginatedDishes.length && paginatedDishes.length > 0}
-                    indeterminate={selectedDishes.size > 0 && selectedDishes.size < paginatedDishes.length}
-                    onChange={handleSelectAllDishes}
-                  />
-                </TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Description</TableCell>
-                  <TableCell>Recipe yield</TableCell>
-                  <TableCell>Ingredients</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedDishes.map((dish) => (
-                <TableRow 
-                  key={dish.id}
-                  style={{ backgroundColor: selectedDishes.has(dish.id) ? 'rgba(25, 118, 210, 0.08)' : 'transparent' }}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedDishes.has(dish.id)}
-                      onChange={() => handleSelectDish(dish.id)}
-                    />
-                  </TableCell>
-                  <TableCell>{dish.name}</TableCell>
-                  <TableCell>{dish.description}</TableCell>
-                  <TableCell>{dish.recipe_yield ?? "Unconfirmed"}</TableCell>
-                  <TableCell>
-                    <ul style={{ margin: 0, paddingLeft: 16 }}>
-                      {(dish.ingredients || []).map((ing, i) => (
-                        <li key={i}>{('ingredient_name' in ing && (ing as any).ingredient_name) ? (ing as any).ingredient_name : `Ingredient #${ing.ingredient_id}`} – {ing.quantity} {ing.unit}</li>
-                      ))}
-                    </ul>
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(dish)}><Edit /></IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(dish.id)}><Delete /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
+    <Dialog open={detail !== null} onClose={() => setDetail(null)} fullWidth maxWidth="sm" aria-labelledby="recipe-detail-title">
+      {detail && <>
+        <DialogTitle id="recipe-detail-title">{detail.name}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.5}>
+            {detail.description && <Typography color="text.secondary">{detail.description}</Typography>}
+            <Typography>Batch yield: <strong>{Number(detail.recipe_yield) > 0 ? `${detail.recipe_yield} servings` : "Not set"}</strong></Typography>
+            {review(detail) && <Alert severity="warning">Review the batch yield and ingredient quantities before relying on this recipe for stock deductions.</Alert>}
+            <Typography component="h2" variant="h6">Batch ingredients</Typography>
+            {!detail.ingredients.length && <Typography color="text.secondary">No ingredients recorded.</Typography>}
+            <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>
+              {detail.ingredients.map((line, index) => <Box component="li" key={index} sx={{ borderTop: 1, borderColor: "divider", pt: 1, overflowWrap: "anywhere" }}>
+                <Typography fontWeight={650}>{ingredientName(line)}</Typography>
+                <Typography variant="body2" color="text.secondary">{line.quantity_decimal ?? line.quantity} {line.unit}
+                  {line.quantity_decimal != null && Number(detail.recipe_yield) > 0 && ` · approx. ${previewQuantity.format(Number(line.quantity_decimal) / Number(detail.recipe_yield))} ${line.unit} per serving`}</Typography>
+              </Box>)}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ flexWrap: "wrap" }}>
+          <Button color="error" onClick={() => confirmDelete([detail])}>Delete dish</Button>
+          <Button onClick={() => setDetail(null)}>Close</Button>
+          <Button variant="contained" onClick={() => edit(detail)}>Edit recipe</Button>
+        </DialogActions>
+      </>}
+    </Dialog>
 
-        <TablePagination
-          component="div"
-          count={filteredDishes.length}
-          page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-        />
+    <Dialog open={draft !== null} onClose={() => { if (!busy) setDraft(null); }} fullScreen={mobile}
+      fullWidth maxWidth="md" aria-labelledby="recipe-editor-title">
+      {draft && <Box component="form" onSubmit={save} sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <DialogTitle id="recipe-editor-title">{draft.id === undefined ? "Add dish" : "Edit recipe"}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            {formError && <Alert severity="error">{formError}</Alert>}
+            {draft.review && <Alert severity="warning">Check the yield and batch quantities before saving. Older quantities may not have been recorded per serving.</Alert>}
+            {loading ? <CircularProgress size={24} aria-label="Loading inventory ingredients" /> : stock === null
+              ? <Alert severity="error" action={<Button onClick={() => void refresh()} color="inherit">Retry</Button>}>Inventory ingredients could not be loaded.</Alert>
+              : !stock.length && <Alert severity="info" action={<Button component={Link} to="/dashboard/inventory" color="inherit">Open inventory</Button>}>Add ingredients to Inventory before building a recipe.</Alert>}
+            <TextField required autoFocus label="Dish name" value={draft.name} disabled={busy}
+              onChange={event => { const name = event.target.value; setDraft(current => current && { ...current, name }); }} />
+            <TextField label="Description" multiline minRows={2} value={draft.description} disabled={busy}
+              onChange={event => { const description = event.target.value; setDraft(current => current && { ...current, description }); }} />
+            <TextField required label="Servings per batch" helperText="How many servings do the ingredient amounts below make?" value={draft.yield} disabled={busy}
+              slotProps={{ htmlInput: { inputMode: "decimal" } }}
+              onChange={event => { const value = event.target.value; setDraft(current => current && { ...current, yield: value }); }} />
+            <Stack spacing={0.5}>
+              <Typography component="h2" variant="h6">Batch ingredients</Typography>
+              <Typography variant="body2" color="text.secondary">Enter the amount for the whole batch. Menurithm divides it by the yield when processing sales.</Typography>
+            </Stack>
+            {draft.lines.map((line, index) => {
+              const linked = line.ingredientId === null ? undefined : stockById?.get(line.ingredientId);
+              const perServing = positiveDecimal(draft.yield) && positiveDecimal(line.quantity)
+                ? previewQuantity.format(Number(line.quantity) / Number(draft.yield)) : null;
+              return <Paper variant="outlined" key={line.key} sx={{ p: 1.5 }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography fontWeight={650}>Ingredient {index + 1}</Typography>
+                    <Button size="small" color="error" disabled={busy} aria-label={`Remove ingredient ${index + 1}`}
+                      onClick={() => setDraft(current => current && ({ ...current, lines: current.lines.filter(item => item.key !== line.key) }))}>Remove</Button>
+                  </Stack>
+                  <Autocomplete options={stock ?? []} value={linked ?? null} disabled={busy || !stock?.length}
+                    getOptionLabel={item => item.ingredient_name} isOptionEqualToValue={(a, b) => a.id === b.id}
+                    onChange={(_, item) => changeLine(line.key, { ingredientId: item?.id ?? null, unit: item?.unit ?? "" })}
+                    renderInput={params => <TextField {...params} label="Inventory ingredient" required
+                      error={stock !== null && line.ingredientId !== null && !linked}
+                      helperText={linked ? `Tracked in inventory as ${linked.unit}` : stock !== null && line.ingredientId !== null ? "Choose a replacement inventory ingredient." : undefined} />} />
+                  <Stack direction={{ xs: "column", sm: "row" }} gap={1}>
+                    <TextField fullWidth required label="Batch quantity" value={line.quantity} disabled={busy}
+                      slotProps={{ htmlInput: { inputMode: "decimal" } }} onChange={event => changeLine(line.key, { quantity: event.target.value })} />
+                    <TextField fullWidth required label="Recipe unit" value={line.unit} disabled={busy}
+                      onChange={event => changeLine(line.key, { unit: event.target.value })} />
+                  </Stack>
+                  {perServing && line.unit.trim() && <Typography variant="body2" color="text.secondary">Approx. {perServing} {line.unit.trim()} per serving</Typography>}
+                </Stack>
+              </Paper>;
+            })}
+            <Button sx={{ alignSelf: "flex-start" }} disabled={busy || !stock?.length} startIcon={<WorkspaceIcon name="add" />}
+              onClick={() => { const line = blankLine(); setDraft(current => current && ({ ...current, lines: [...current.lines, line] })); }}>Add ingredient</Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={busy} onClick={() => setDraft(null)}>Cancel</Button>
+          <Button type="submit" variant="contained" disabled={busy || loading || !stock?.length}>{busy ? "Saving..." : "Save recipe"}</Button>
+        </DialogActions>
+      </Box>}
+    </Dialog>
 
-        <Snackbar
-          open={!!snackbar}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)}>
-            {snackbar?.message}
-          </Alert>
-        </Snackbar>
-
-        {/* CSV Help Dialog */}
-        <CSVHelpDialog
-          open={showCSVHelpDialog}
-          onClose={() => setShowCSVHelpDialog(false)}
-          uploadType="dishes"
-        />
-      </CardContent>
-    </Card>
-    </>
-  );
-};
-
-export default DishManager;
+    <Dialog open={remove !== null} onClose={() => { if (!busy) setRemove(null); }} aria-labelledby="recipe-delete-title">
+      {remove && <>
+        <DialogTitle id="recipe-delete-title">Delete {remove.length === 1 ? remove[0].name : `${remove.length} dishes`}?</DialogTitle>
+        <DialogContent>
+          <Typography>This removes the dish and its recipe. This action cannot be undone.</Typography>
+          {deleteError && <Alert severity="error" sx={{ mt: 1, whiteSpace: "pre-line" }}>{deleteError}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemove(null)} disabled={busy}>Cancel</Button>
+          <Button color="error" onClick={() => void deleteSelected()} disabled={busy}>{busy ? "Deleting..." : "Delete"}</Button>
+        </DialogActions>
+      </>}
+    </Dialog>
+    <CSVHelpDialog open={csvHelp} onClose={() => setCsvHelp(false)} uploadType="dishes" />
+    <Snackbar open={!!notice} autoHideDuration={4500} onClose={() => setNotice("")}>
+      <Alert severity="success" onClose={() => setNotice("")}>{notice}</Alert>
+    </Snackbar>
+  </Box>;
+}
