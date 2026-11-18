@@ -39,7 +39,14 @@ the agreement workflow; existing historical order records are retained.
 
 See [Croprithm deployment and migration instructions](https://github.com/brianmbeere/croprithm#backend-setup-and-deployment-order).
 
-The **Produce marketplace** workspace includes a checkout preview for live
+The **Produce marketplace** shows live listings in a visual grid. Select a
+card or a cart item for variety, stock, farm location, any supplied harvest
+and expiry dates, and the listing description. Farmers can choose the crop
+illustration in Croprithm; otherwise it is matched automatically by produce
+type. The illustrations are not farm photos. Open **Cart** to edit quantities
+and review checkout without leaving the catalog.
+
+The workspace includes a checkout preview for live
 Croprithm listings. Add items from one farm, edit quantities, and review the
 produce subtotal after Croprithm checks live price and stock. This does not
 place an order, reserve inventory, or contact Stripe. Delivery windows, taxes,

@@ -14,6 +14,8 @@ export interface CroprithmProduceListing {
   location: string;
   organic: boolean;
   description: string | null;
+  illustration?: { id: string; label: string; symbol: string; background: string } | null;
+  harvest_date?: string | null;
   expiry_date: string | null;
 }
 

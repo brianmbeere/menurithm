@@ -22,7 +22,13 @@ window.fetch = async (input, init) => {
   if (!url.includes('/api/fulfillment/')) return originalFetch(input, init);
   if (url.includes('/produce/available')) return Response.json([
     { id: 501, seller_id: 1, seller_name: 'Fixture Farmer', produce_type: 'Tomatoes', quantity_available: 20,
-      unit: 'kg', price_per_unit: 3, location: 'Fixture Farm', organic: true },
+      unit: 'kg', price_per_unit: 3, location: 'Fixture Farm', organic: true, variety: 'Roma',
+      description: 'Firm tomatoes for roasting and sauces.', harvest_date: '2026-11-18',
+      expiry_date: '2026-11-25', illustration: { id: 'seedling', label: 'Seedling', symbol: '🌱', background: '#e7eddc' } },
+    { id: 502, seller_id: 1, seller_name: 'Fixture Farmer', produce_type: 'Spinach', quantity_available: 8,
+      unit: 'lb', price_per_unit: 5, location: 'Fixture Farm' },
+    { id: 503, seller_id: 2, seller_name: 'North Farm', produce_type: 'Carrots', quantity_available: 12,
+      unit: 'lb', price_per_unit: 4, location: 'North Farm' },
   ]);
   if (url.endsWith('/marketplace/checkout-preview')) {
     const body = JSON.parse(String(init?.body));
@@ -31,8 +37,16 @@ window.fetch = async (input, init) => {
       return Response.json({ detail: 'Not enough tomatoes are available.' }, { status: 409 });
     }
     const subtotal = (Number(line.quantity) * 3).toFixed(2);
-    return Response.json({ seller_name: 'Fixture Farmer', produce_subtotal: subtotal, payment_status: 'not_configured',
+    return Response.json({ seller_name: 'Fixture Farmer', produce_subtotal: subtotal, payment_method: 'pay_at_pickup',
+      pickup_windows: [{ id: 9, address: 'Fixture gate', starts_at: '2099-11-18T16:00:00Z', ends_at: '2099-11-18T18:00:00Z' }],
       lines: [{ listing_id: 501, produce_type: 'Tomatoes', unit: 'kg', quantity: line.quantity, line_total: subtotal }] });
+  }
+  if (url.endsWith('/marketplace/pickup-checkouts')) {
+    const body = JSON.parse(String(init?.body));
+    if (body.window_id !== 9 || !body.restaurant_name || !body.attempt_key) {
+      return Response.json({ detail: 'Missing pickup order details.' }, { status: 422 });
+    }
+    return Response.json({ id: 42, state: 'placed', produce_subtotal: body.expected_subtotal });
   }
   if (url.endsWith('/accept')) {
     const body = JSON.parse(String(init?.body));
