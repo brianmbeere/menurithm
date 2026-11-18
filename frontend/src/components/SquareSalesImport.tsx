@@ -76,12 +76,12 @@ export default function SquareSalesImport({ onImported }: { onImported: () => Pr
     <CardContent><Stack spacing={2}>
       <Box>
         <Typography component="h2" variant="h6">Square POS</Typography>
-        <Typography variant="body2" color="text.secondary">Connect Square to review and import sales into Menurithm. Only mapped dishes are imported.</Typography>
+        <Typography variant="body2" color="text.secondary">Review and import Square sales on demand. Only mapped dishes are imported; there is no automatic sync.</Typography>
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       {!status && !error && <Typography role="status">Checking Square connection…</Typography>}
       {status && !status.configured && <Alert severity="info">Square is not configured in this environment. You can still record sales or upload a CSV.</Alert>}
-      {status?.configured && status.environment === "sandbox" && <Alert severity="warning">Square Sandbox is for testing only. Do not import test orders into a real kitchen workspace.</Alert>}
+      {status?.configured && status.environment === "sandbox" && <Alert severity="warning">Square Sandbox: test sales only. Do not import them into a real kitchen workspace.</Alert>}
       {error && (!status || (status.connected && !locations)) && <Box><Button onClick={() => { setError(""); setReload(value => value + 1); }}>Retry</Button></Box>}
       {status?.configured && !status.connected && <Box>
         {redirectOrigin !== location.origin

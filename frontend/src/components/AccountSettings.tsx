@@ -20,6 +20,7 @@ export default function AccountSettings() {
       action={<Button component={Link} to="/dashboard/sales#square-sales" color="inherit">Go to sales</Button>}>{square.message}</Alert>}
     <Box sx={{ display: "grid", gap: 2, alignItems: "start", maxWidth: 960,
       gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" } }}>
+      <RestaurantProfileEditor />
       <Card variant="outlined" component="section" aria-labelledby="account-sign-in">
         <CardContent>
           <Stack direction="row" gap={1.5} alignItems="center" sx={{ mb: 2 }}>
@@ -28,7 +29,6 @@ export default function AccountSettings() {
               <Typography id="account-sign-in" component="h2" variant="h6">Sign-in details</Typography>
               <Typography variant="body2" color="text.secondary">Account details are read-only here.</Typography>
             </Box>
-            <Button component={Link} to="/dashboard/sales#square-sales" sx={{ mt: 2 }}>Manage Square POS in Sales</Button>
           </Stack>
           {user ? <Stack component="dl" spacing={1.5} sx={{ m: 0, overflowWrap: "anywhere" }}>
             <Box>
@@ -44,7 +44,13 @@ export default function AccountSettings() {
           </Stack> : <Alert severity="warning">Sign in to view your account details.</Alert>}
         </CardContent>
       </Card>
-      <RestaurantProfileEditor />
+      <Card variant="outlined" component="section" aria-labelledby="account-sales-connections">
+        <CardContent>
+          <Typography id="account-sales-connections" component="h2" variant="h6">Sales connections</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>Check your Square connection or import sales from the Sales page.</Typography>
+          <Button component={Link} to="/dashboard/sales#square-sales" sx={{ minHeight: 44 }}>Manage Square POS</Button>
+        </CardContent>
+      </Card>
       <Card variant="outlined" component="section" aria-labelledby="account-purchasing">
         <CardContent sx={{ pb: 1 }}>
           <Typography id="account-purchasing" component="h2" variant="h6">Purchasing shortcuts</Typography>

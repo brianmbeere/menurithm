@@ -20,10 +20,19 @@ type Draft = { id?: number; name: string; description: string; yield: string; li
 type View = "all" | "review";
 const positiveDecimal = (value: string) =>
   /^(?:\d{1,15}(?:\.\d{0,9})?|\.\d{1,9})$/.test(value.replace(/^0+(?=\d)/, "")) && Number(value) > 0;
-const needsReview = (dish: Dish, inventory: Map<number, InventoryItem> | null) =>
-  !(Number(dish.recipe_yield) > 0) || !dish.ingredients.length || dish.ingredients.some(line =>
-    line.quantity_decimal == null || !(Number(line.quantity_decimal) > 0) || !line.unit?.trim() ||
-    (inventory !== null && !inventory.has(line.ingredient_id)));
+function recipeIssues(dish: Dish, inventory: Map<number, InventoryItem> | null, name: (line: Dish["ingredients"][number]) => string) {
+  const issues: string[] = [];
+  if (!(Number(dish.recipe_yield) > 0)) issues.push("Set the number of servings per batch.");
+  if (!dish.ingredients.length) issues.push("Add at least one ingredient.");
+  for (const line of dish.ingredients) {
+    const fixes: string[] = [];
+    if (inventory !== null && !inventory.has(line.ingredient_id)) fixes.push("relink to an inventory ingredient");
+    if (line.quantity_decimal == null || !(Number(line.quantity_decimal) > 0)) fixes.push("confirm a positive batch quantity");
+    if (!line.unit?.trim()) fixes.push("add a unit");
+    if (fixes.length) issues.push(`${name(line)}: ${fixes.join("; ")}.`);
+  }
+  return issues;
+}
 const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 const previewQuantity = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4 });
 
@@ -71,7 +80,8 @@ export default function DishManager() {
   const stockById = stock && new Map(stock.map(item => [item.id, item]));
   const ingredientName = (line: Dish["ingredients"][number]) =>
     stockById?.get(line.ingredient_id)?.ingredient_name || line.ingredient_name || `Ingredient #${line.ingredient_id}`;
-  const review = (dish: Dish) => needsReview(dish, stockById);
+  const issues = (dish: Dish) => recipeIssues(dish, stockById, ingredientName);
+  const review = (dish: Dish) => issues(dish).length > 0;
   const query = search.trim().toLowerCase();
   const filtered = dishes.filter(dish =>
     (view === "all" || review(dish)) &&
@@ -126,9 +136,9 @@ export default function DishManager() {
     if (!positiveDecimal(draft.yield.trim())) return setFormError("Enter a positive batch yield with up to 15 whole-number digits and 9 decimal places.");
     const ingredients: DishInput["ingredients"] = [];
     for (const [index, line] of draft.lines.entries()) {
-      if (line.ingredientId === null || !stockById?.has(line.ingredientId) || !positiveDecimal(line.quantity.trim()) || !line.unit.trim()) {
-        return setFormError(`Ingredient ${index + 1}: choose an inventory item, enter a positive quantity with up to 15 whole-number digits and 9 decimal places, and specify a unit.`);
-      }
+      if (line.ingredientId === null || !stockById?.has(line.ingredientId)) return setFormError(`Ingredient ${index + 1}: choose an ingredient from inventory.`);
+      if (!positiveDecimal(line.quantity.trim())) return setFormError(`Ingredient ${index + 1}: enter a positive batch quantity with up to 15 whole-number digits and 9 decimal places.`);
+      if (!line.unit.trim()) return setFormError(`Ingredient ${index + 1}: enter a measurement unit.`);
       ingredients.push({ ingredient_id: line.ingredientId, quantity: line.quantity.trim(), unit: line.unit.trim() });
     }
     if (!ingredients.length) return setFormError("Add at least one ingredient.");
@@ -208,7 +218,7 @@ export default function DishManager() {
           {loading && <CircularProgress size={24} aria-label="Loading recipes" />}
           {!loading && !dishError && visible.length === 0 && <Stack alignItems="flex-start" spacing={1}>
             <Typography component="h2" variant="h6">{dishes.length ? "No dishes match this view" : "No dishes yet"}</Typography>
-            <Typography color="text.secondary">{dishes.length ? "Try a different search or show all dishes." : "Add a dish or import recipes from CSV."}</Typography>
+            <Typography color="text.secondary">{dishes.length ? "Try a different search or show all dishes." : "Add a dish, enter its batch yield, and link at least one ingredient from inventory. You can also import dishes from CSV."}</Typography>
             {dishes.length > 0 && <Button onClick={() => setFilter("all", "")}>Clear filters</Button>}
           </Stack>}
         </Stack>
@@ -233,6 +243,7 @@ export default function DishManager() {
                   <Typography variant="body2" color="text.secondary">{Number(dish.recipe_yield) > 0 ? `${dish.recipe_yield} servings per batch` : "Yield not set"} · {dish.ingredients.length} {dish.ingredients.length === 1 ? "ingredient" : "ingredients"}</Typography>
                   {review(dish) && <Chip size="small" color="warning" label="Needs recipe review" />}
                 </Stack>
+                {review(dish) && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflowWrap: "anywhere" }}>{issues(dish)[0]}</Typography>}
               </Box>
               <Button variant="outlined" size="small" aria-label={`Edit recipe for ${dish.name}`} onClick={() => edit(dish)}
                 sx={{ gridColumn: { xs: 2, sm: "auto" }, justifySelf: "start" }}>Edit recipe</Button>
@@ -270,7 +281,12 @@ export default function DishManager() {
           <Stack spacing={1.5}>
             {detail.description && <Typography color="text.secondary">{detail.description}</Typography>}
             <Typography>Batch yield: <strong>{Number(detail.recipe_yield) > 0 ? `${detail.recipe_yield} servings` : "Not set"}</strong></Typography>
-            {review(detail) && <Alert severity="warning">Review the batch yield and ingredient quantities before relying on this recipe for stock deductions.</Alert>}
+            {review(detail) && <Alert severity="warning">
+              Fix these recipe details before relying on stock deductions:
+              <Box component="ul" sx={{ my: 0.5, pl: 2, overflowWrap: "anywhere" }}>
+                {issues(detail).map((issue, index) => <li key={index}>{issue}</li>)}
+              </Box>
+            </Alert>}
             <Typography component="h2" variant="h6">Batch ingredients</Typography>
             {!detail.ingredients.length && <Typography color="text.secondary">No ingredients recorded.</Typography>}
             <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>

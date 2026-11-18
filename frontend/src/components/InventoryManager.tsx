@@ -274,13 +274,13 @@ export default function InventoryManager() {
   return <Box>
     <PageHeading icon="inventory" title="Inventory" description="Count kitchen stock, track changes, and see what needs replenishing."
       actions={<Stack direction="row" gap={1} flexWrap="wrap">
-        <Button variant="outlined" startIcon={<WorkspaceIcon name="shop" />} onClick={() => setSource({})}>Source produce</Button>
         <Button variant="contained" startIcon={<WorkspaceIcon name="add" />} onClick={() => openEditor("add")}>Add ingredient</Button>
+        <Button variant="outlined" startIcon={<WorkspaceIcon name="shop" />} onClick={() => setSource({})}>Find produce</Button>
       </Stack>} />
     <Stack spacing={2.5}>
       <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         {([
-          ["all", "All ingredients", items.length], ["reorder", "At reorder point", reorderIds?.size],
+          ["all", "Total ingredients", items.length], ["reorder", "Low stock", reorderIds?.size],
           ["out", "Out of stock", items.filter(outOfStock).length],
         ] as const).map(([id, label, total]) => <Button key={id}
           variant="outlined" aria-pressed={view === id} disabled={id === "reorder" && reorderIds === null}
@@ -291,6 +291,9 @@ export default function InventoryManager() {
           <Typography component="span" variant="body2">{label}</Typography>
         </Button>)}
       </Box>
+      {view === "reorder" && !reorderError && <Typography variant="body2" color="text.secondary">
+        Shows ingredients at or below their configured reorder point. Use Find produce to restock.
+      </Typography>}
 
       <Paper variant="outlined" sx={{ overflow: "hidden" }}>
         <Stack direction={{ xs: "column", sm: "row" }} gap={1.5} sx={{ p: 2 }}>
@@ -314,7 +317,7 @@ export default function InventoryManager() {
         {loading && <Box sx={{ p: 2 }}><CircularProgress size={24} aria-label="Loading inventory" /></Box>}
         {!loading && !loadError && visible.length === 0 && <Stack alignItems="flex-start" spacing={1} sx={{ p: 2 }}>
           <Typography component="h2" variant="h6">{items.length ? "No ingredients match this view" : "No ingredients yet"}</Typography>
-          <Typography color="text.secondary">{items.length ? "Try a different search, stock view, or storage location." : "Add an ingredient or import a CSV to start tracking stock."}</Typography>
+          <Typography color="text.secondary">{items.length ? "Try a different search, stock view, or storage location." : "Start with one ingredient and its current stock. Set a reorder point to flag low stock, then link the ingredient when you build a recipe."}</Typography>
           {items.length > 0 && <Button onClick={() => { setSearch(""); setLocation(""); setView("all"); changeFilters(); }}>Clear filters</Button>}
         </Stack>}
         {visible.length > 0 && <>
@@ -344,15 +347,15 @@ export default function InventoryManager() {
                 </Box>
                 <Stack direction="row" gap={0.75} alignItems="center" flexWrap="wrap" sx={{ gridColumn: { xs: 2, md: "auto" } }}>
                   <Typography fontWeight={750} sx={{ fontVariantNumeric: "tabular-nums" }}>{item.quantity} {item.unit}</Typography>
-                  {zero ? <Chip size="small" color="error" label="Out of stock" /> : reorder ? <Chip size="small" color="warning" label="Reorder" /> : null}
+                  {zero ? <Chip size="small" color="error" label="Out of stock" /> : reorder ? <Chip size="small" color="warning" label="Low stock" /> : reorderIds && <Chip size="small" variant="outlined" label="In stock" />}
                 </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ gridColumn: { xs: 2, md: "auto" } }}>
                   <Box component="span" sx={{ display: { md: "none" } }}>Reorder point: </Box>
                   {sameQuantity(item.reorder_point ?? "0", "0") ? "Not set" : `${item.reorder_point} ${item.unit}`}
                 </Typography>
                 <Stack direction="row" gap={0.5} flexWrap="wrap" sx={{ gridColumn: { xs: 2, md: "auto" } }}>
-                  <Button size="small" variant="outlined" aria-label={`Count stock for ${item.ingredient_name}`} onClick={() => openEditor("count", item)}>Count stock</Button>
-                  {(reorder || zero) && <Button size="small" aria-label={`Source ${item.ingredient_name}`} onClick={() => setSource({ id: item.id })}>Source</Button>}
+                  <Button size="small" variant="outlined" sx={{ minHeight: 44 }} aria-label={`Count stock for ${item.ingredient_name}`} onClick={() => openEditor("count", item)}>Count stock</Button>
+                  {(reorder || zero) && <Button size="small" sx={{ minHeight: 44 }} aria-label={`Find produce for ${item.ingredient_name}`} onClick={() => setSource({ id: item.id })}>Find produce</Button>}
                 </Stack>
               </Box>;
             })}
