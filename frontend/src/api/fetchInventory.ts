@@ -1,7 +1,8 @@
 import { BASE_URL } from "../utils";
 import { authFetch } from "../hooks/authFetch";
+import { type InventoryItem } from "./updateInventory";
 
- const fetchInventory = async () => {
+const fetchInventory = async (): Promise<InventoryItem[]> => {
   const response = await authFetch(`${BASE_URL}/inventory`);
   if (!response.ok) {
     throw new Error("Failed to fetch inventory");
@@ -10,4 +11,3 @@ import { authFetch } from "../hooks/authFetch";
 };
 
 export default fetchInventory;
-

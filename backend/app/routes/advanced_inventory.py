@@ -8,6 +8,7 @@ from app.services.voice_inventory import VoiceInventoryService, VoiceCommandProc
 from app.services.croprithm_integration import CroprithmIntegrationService
 from app.core.croprithm_config import get_croprithm_api_key
 from app.models.inventory_enhanced import InventoryItemEnhanced, DishPrediction, StockMovement
+from app.services.enhanced_inventory_safety import reject_enhanced_inventory_write_http
 from typing import List, Dict
 from datetime import datetime
 import tempfile
@@ -47,7 +48,10 @@ async def start_voice_recording(
         logger.error(f"Voice recording error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to start voice recording: {str(e)}")
 
-@router.post("/voice-commands/process")
+@router.post(
+    "/voice-commands/process",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def process_voice_command(
     command_text: str,
     db: Session = Depends(get_db),
@@ -125,7 +129,10 @@ async def get_demand_predictions(
         raise HTTPException(status_code=500, detail=f"Failed to generate predictions: {str(e)}")
 
 # Enhanced CSV Processing Routes
-@router.post("/csv-upload-enhanced")
+@router.post(
+    "/csv-upload-enhanced",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def upload_enhanced_csv(
     file: UploadFile = File(...),
     data_type: str = "inventory",  # "inventory", "dishes", "sales"
@@ -281,7 +288,10 @@ async def get_purchase_orders(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve orders: {str(e)}")
 
-@router.post("/orders/{order_id}/confirm-delivery")
+@router.post(
+    "/orders/{order_id}/confirm-delivery",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def confirm_delivery(
     order_id: int,
     delivery_data: Dict,  # Should contain "received_quantity"
@@ -456,7 +466,10 @@ async def get_demand_predictions(
 
 # Voice Inventory Endpoints
 
-@router.post("/voice/inventory-command")
+@router.post(
+    "/voice/inventory-command",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def process_voice_inventory_command(
     audio_file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -619,7 +632,10 @@ async def get_purchase_orders(
         logger.error(f"Error getting orders: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get orders: {str(e)}")
 
-@router.post("/suppliers/orders/{order_id}/confirm-delivery")
+@router.post(
+    "/suppliers/orders/{order_id}/confirm-delivery",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def confirm_delivery(
     order_id: int,
     delivery_data: Dict,  # Should contain "received_quantity"

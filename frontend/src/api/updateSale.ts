@@ -15,8 +15,10 @@ export const updateSale = async (id: number, sale: SaleInput) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sale)
   });
-  if (!res.ok) throw new Error("Failed to update sale");
+  if (!res.ok) {
+    const body = await res.json();
+    throw new Error(typeof body.detail === "string" ? body.detail : "Failed to update sale");
+  }
   return res.json();
 };
-
 

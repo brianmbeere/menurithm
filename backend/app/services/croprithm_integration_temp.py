@@ -5,7 +5,9 @@ from datetime import datetime, date
 from sqlalchemy.orm import Session
 import logging
 
-from app.models.inventory_enhanced import SupplierCatalog, PurchaseOrder, InventoryItemEnhanced
+from app.models.inventory_enhanced import SupplierCatalog, PurchaseOrder
+from app.services.enhanced_inventory_safety import reject_enhanced_inventory_write
+from app.services.enhanced_inventory_safety import reject_enhanced_inventory_write
 
 logger = logging.getLogger(__name__)
 
@@ -161,70 +163,8 @@ class CroprithmIntegrationService:
             }
     
     async def process_delivery_confirmation(self, user_email: str, order_id: int, received_quantity: float) -> Dict[str, Any]:
-        """Process delivery confirmation and update inventory"""
-        try:
-            # Get order
-            order = self.db.query(PurchaseOrder).filter(PurchaseOrder.id == order_id).first()
-            if not order:
-                return {
-                    "success": False,
-                    "message": "Order not found"
-                }
-            
-            # Get updated status from Croprithm
-            if order.routecast_order_id:
-                routecast_status = self._get_routecast_order_status(order.routecast_order_id)
-                
-                # Update local order status
-                if routecast_status.get("status") != order.status:
-                    order.status = routecast_status.get("status", order.status)
-                    if routecast_status.get("delivery_date"):
-                        order.actual_delivery_date = datetime.strptime(
-                            routecast_status["delivery_date"], "%Y-%m-%d"
-                        ).date()
-            
-            # Update inventory if delivered
-            if order.status == "delivered":
-                order_data = json.loads(order.order_data)
-                for item in order_data.get("items", []):
-                    # Find or create inventory item
-                    inventory_item = self.db.query(InventoryItemEnhanced).filter(
-                        InventoryItemEnhanced.ingredient_name == item.get("product_name"),
-                        InventoryItemEnhanced.user_id == order.user_id
-                    ).first()
-                    
-                    if inventory_item:
-                        inventory_item.current_stock += received_quantity
-                        inventory_item.last_updated = datetime.now()
-                    else:
-                        # Create new inventory item
-                        inventory_item = InventoryItemEnhanced(
-                            user_id=order.user_id,
-                            ingredient_name=item.get("product_name"),
-                            current_stock=received_quantity,
-                            unit=item.get("unit", "units"),
-                            cost_per_unit=item.get("unit_price", 0),
-                            supplier_info=order.supplier_name,
-                            last_updated=datetime.now()
-                        )
-                        self.db.add(inventory_item)
-            
-            self.db.commit()
-            
-            return {
-                "success": True,
-                "order_id": order_id,
-                "status": order.status,
-                "received_quantity": received_quantity,
-                "inventory_updated": order.status == "delivered"
-            }
-            
-        except Exception as e:
-            logger.error(f"Error processing delivery confirmation: {str(e)}")
-            return {
-                "success": False,
-                "message": f"Failed to process delivery: {str(e)}"
-            }
+        """Reject legacy receipts that would update separate enhanced stock."""
+        reject_enhanced_inventory_write()
     
     async def get_suppliers(self, db: Session, user_id: str) -> List[Dict]:
         """Get list of available suppliers"""

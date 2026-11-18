@@ -2,12 +2,15 @@ import { BASE_URL } from "../utils";
 import { authFetch } from "../hooks/authFetch";
 
 export interface InventoryItem {
+  id: number;
   ingredient_name: string;
   quantity: string;
+  reorder_point: string;
   unit: string;
   category: string;
   expiry_date: string;
   storage_location: string;
+  adjustment_reason?: string;
 }
 
 

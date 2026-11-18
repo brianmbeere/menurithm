@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, UniqueConstraint, Numeric
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -9,6 +9,7 @@ class Dish(Base):
     user_id = Column(String)  # Changed from Integer to String (email)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    recipe_yield = Column(Numeric(24, 9), nullable=True)
 
     ingredients = relationship("DishIngredient", back_populates="dish", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="dish")
@@ -25,6 +26,7 @@ class DishIngredient(Base):
     dish_id = Column(Integer, ForeignKey("dishes.id"), nullable=False)
     ingredient_id = Column(Integer, ForeignKey("inventory.id"), nullable=False)
     quantity = Column(Float, nullable=False)
+    quantity_decimal = Column(Numeric(24, 9), nullable=True)
     unit = Column(String, nullable=False)
 
     dish = relationship("Dish", back_populates="ingredients")

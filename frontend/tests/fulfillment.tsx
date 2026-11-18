@@ -13,6 +13,7 @@ let orders = [{
   delivery_address: '100 Market Street', pickup_address: null, instructions: 'Call at arrival. Keep shaded.',
   revision: 1, stage: 'quoted', window_start: '2026-11-01T10:00:00Z', window_end: '2026-11-01T12:00:00Z',
   farmer_name: 'Fixture Farmer', farmer_contact: 'fixture@example.com',
+  produce_total: '30.00', sale_total: '36.25', stock_reserved: false,
 }];
 const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
@@ -22,11 +23,20 @@ window.fetch = async (input, init) => {
     const body = JSON.parse(String(init?.body));
     if (body.revision !== orders[0].revision) return Response.json({ detail: 'Quote changed. Refresh and review.' }, { status: 409 });
     orders[0].stage = 'accepted';
+    orders[0].stock_reserved = true;
     return Response.json(orders[0]);
+  }
+  if (url.endsWith('/cancel')) {
+    const order = orders.find(item => url.endsWith(`/${item.id}/cancel`));
+    if (!order) return Response.json({ detail: 'Order not found' }, { status: 404 });
+    order.stage = 'canceled';
+    order.stock_reserved = false;
+    return Response.json(order);
   }
   if (init?.method === 'POST') {
     const body = JSON.parse(String(init.body));
     const order = { ...orders[0], ...body, id: 2, request_id: 102, fee: null, revision: 0, stage: 'requested',
+      produce_total: null, sale_total: null, stock_reserved: false,
       window_start: body.delivery_window_start, window_end: body.delivery_window_end };
     orders = [order, ...orders];
     return Response.json(order);

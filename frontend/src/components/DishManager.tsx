@@ -20,6 +20,8 @@ interface IngredientOption {
   unit: string;
 }
 
+type DishForm = Omit<DishInput, "recipe_yield"> & { recipe_yield: string };
+
 const IngredientInputs = ({
   index, ing, onChange, ingredientOptions
 }: {
@@ -39,7 +41,7 @@ const IngredientInputs = ({
       />
     </Grid>
     <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-      <TextField fullWidth label="Quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
+      <TextField fullWidth label="Ingredient quantity" type="number" value={ing.quantity} onChange={(e) => onChange(index, "quantity", parseFloat(e.target.value))} />
     </Grid>
     <Grid size={{ xs: 12, sm: 4, md: 4 }}>
       <TextField fullWidth label="Unit" value={ing.unit} onChange={(e) => onChange(index, "unit", e.target.value)} />
@@ -52,9 +54,10 @@ const DishManager = () => {
   const [selectedDishes, setSelectedDishes] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
-  const [dishForm, setDishForm] = useState<DishInput>({
+  const [dishForm, setDishForm] = useState<DishForm>({
     name: "",
     description: "",
+    recipe_yield: "",
     ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }]
   });
   const [editDishId, setEditDishId] = useState<number | null>(null);
@@ -90,7 +93,7 @@ const DishManager = () => {
 
   const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
 
-  const handleDishChange = (field: keyof DishInput, value: string) => {
+  const handleDishChange = (field: keyof DishForm, value: string) => {
     setDishForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -110,36 +113,39 @@ const DishManager = () => {
   };
 
   const resetForm = () => {
-    setDishForm({ name: "", description: "", ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }] });
+    setDishForm({ name: "", description: "", recipe_yield: "", ingredients: [{ ingredient_id: 0, quantity: 1, unit: "" }] });
     setEditDishId(null);
     setShowIngredients(false);
   };
 
   const submitDish = async () => {
     try {
+      const recipeYield = Number(dishForm.recipe_yield);
+      if (!Number.isFinite(recipeYield) || recipeYield <= 0) {
+        showSnackbar("Enter how many servings the ingredient quantities make.", "error");
+        return;
+      }
+      if (dishForm.ingredients.some(ingredient =>
+        !ingredient.ingredient_id || !Number.isFinite(ingredient.quantity) || ingredient.quantity <= 0 || !ingredient.unit.trim()
+      )) {
+        showSnackbar("Choose an ingredient and enter a positive quantity and unit for each recipe line.", "error");
+        return;
+      }
+      const payload: DishInput = {
+        ...dishForm,
+        recipe_yield: recipeYield,
+        ingredients: dishForm.ingredients.map(ing => ({
+          ingredient_id: ing.ingredient_id,
+          quantity: ing.quantity,
+          unit: ing.unit,
+        })),
+      };
       if (editDishId !== null) {
-        const updated = await updateDish(
-          editDishId,
-          {
-            ...dishForm,
-            ingredients: dishForm.ingredients.map(ing => ({
-              ingredient_id: ing.ingredient_id,
-              quantity: ing.quantity,
-              unit: ing.unit
-            }))
-          }
-        );
+        const updated = await updateDish(editDishId, payload);
         setDishes(prev => prev.map(d => (d.id === editDishId ? updated : d)));
         showSnackbar("Dish updated!", "success");
       } else {
-        const newDish = await createDish({
-          ...dishForm,
-          ingredients: dishForm.ingredients.map(ing => ({
-            ingredient_id: ing.ingredient_id,
-            quantity: ing.quantity,
-            unit: ing.unit
-          }))
-        });
+        const newDish = await createDish(payload);
         setDishes(prev => [...prev, newDish]);
         showSnackbar("Dish created!", "success");
       }
@@ -159,9 +165,10 @@ const DishManager = () => {
     setDishForm({
       name: dish.name,
       description: dish.description,
+      recipe_yield: dish.recipe_yield?.toString() || "",
       ingredients: dish.ingredients.map(ing => ({
         ingredient_id: ing.ingredient_id,
-        quantity: ing.quantity,
+        quantity: Number(ing.quantity_decimal ?? ing.quantity),
         unit: ing.unit
       }))
     });
@@ -315,6 +322,18 @@ const DishManager = () => {
           <Grid size={{ xs: 12, sm: 6, md: 6 }}>
             <TextField fullWidth label="Description" value={dishForm.description} onChange={(e) => handleDishChange("description", e.target.value)} />
           </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              fullWidth
+              required
+              label="Servings made by this recipe"
+              type="number"
+              value={dishForm.recipe_yield}
+              slotProps={{ htmlInput: { min: 0.000001, step: "any" } }}
+              helperText="Ingredient quantities below are for this many servings. Existing recipes need this confirmed before sales can deduct stock."
+              onChange={(e) => handleDishChange("recipe_yield", e.target.value)}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <Button onClick={() => setShowIngredients(prev => !prev)} startIcon={showIngredients ? <ExpandLess /> : <ExpandMore />}>
               {showIngredients ? "Hide Ingredients" : "Add Ingredients"}
@@ -381,7 +400,8 @@ const DishManager = () => {
                 </TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Description</TableCell>
-                <TableCell>Ingredients</TableCell>
+                  <TableCell>Recipe yield</TableCell>
+                  <TableCell>Ingredients</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -399,6 +419,7 @@ const DishManager = () => {
                   </TableCell>
                   <TableCell>{dish.name}</TableCell>
                   <TableCell>{dish.description}</TableCell>
+                  <TableCell>{dish.recipe_yield ?? "Unconfirmed"}</TableCell>
                   <TableCell>
                     <ul style={{ margin: 0, paddingLeft: 16 }}>
                       {(dish.ingredients || []).map((ing, i) => (

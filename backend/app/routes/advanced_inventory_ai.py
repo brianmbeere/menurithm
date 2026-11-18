@@ -29,6 +29,7 @@ from app.services.demand_prediction import DemandPredictionService
 from app.services.voice_inventory import VoiceInventoryService, SPEECH_RECOGNITION_AVAILABLE
 from app.services.croprithm_integration import CroprithmIntegrationService
 from app.core.croprithm_config import get_croprithm_api_key, get_croprithm_base_url
+from app.services.enhanced_inventory_safety import reject_enhanced_inventory_write_http
 
 router = APIRouter(prefix="/api/advanced-inventory", tags=["Advanced Inventory"])
 
@@ -189,7 +190,10 @@ async def get_voice_status(
             "message": "Voice system check failed"
         }
 
-@router.post("/voice-update")
+@router.post(
+    "/voice-update",
+    dependencies=[Depends(reject_enhanced_inventory_write_http)],
+)
 async def process_voice_update(
     audio_file: UploadFile = File(..., description="Audio file containing voice command (WAV, AIFF, FLAC, or auto-converted formats)"),
     db: Session = Depends(get_db),

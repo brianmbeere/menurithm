@@ -7,8 +7,8 @@ import tempfile
 import os
 from sqlalchemy.orm import Session
 
-from app.models.inventory_enhanced import InventoryItemEnhanced, StockMovement
-from app.schemas.inventory import InventoryItemIn
+from app.models.inventory_enhanced import InventoryItemEnhanced
+from app.services.enhanced_inventory_safety import reject_enhanced_inventory_write
 
 logger = logging.getLogger(__name__)
 
@@ -243,154 +243,12 @@ class VoiceInventoryService:
             return {"success": False, "message": "Unknown command type"}
     
     def _add_inventory(self, user_id: str, data: Dict, original_text: str, confidence: float) -> Dict:
-        """Add inventory via voice command"""
-        try:
-            ingredient_name = data["ingredient"].lower()
-            quantity = data["quantity"]
-            unit = data["unit"]
-            
-            # Find existing inventory item
-            inventory_item = self.db.query(InventoryItemEnhanced).filter(
-                InventoryItemEnhanced.user_id == user_id,
-                InventoryItemEnhanced.ingredient_name.ilike(f"%{ingredient_name}%")
-            ).first()
-            
-            if inventory_item:
-                # Update existing item
-                old_quantity = inventory_item.quantity
-                inventory_item.quantity += quantity
-                inventory_item.last_updated = datetime.utcnow()
-                inventory_item.last_voice_update = datetime.utcnow()
-                inventory_item.voice_notes = original_text
-                
-                # Record stock movement
-                movement = StockMovement(
-                    inventory_item_id=inventory_item.id,
-                    user_id=user_id,
-                    movement_type="voice_addition",
-                    quantity_change=quantity,
-                    quantity_before=old_quantity,
-                    quantity_after=inventory_item.quantity,
-                    reason="voice_input",
-                    voice_input=True,
-                    voice_confidence=confidence
-                )
-                self.db.add(movement)
-                self.db.commit()
-                
-                return {
-                    "success": True,
-                    "message": f"Added {quantity} {unit} of {ingredient_name}. New total: {inventory_item.quantity} {unit}",
-                    "action": "updated_existing",
-                    "item_id": inventory_item.id
-                }
-            else:
-                # Create new inventory item
-                new_item = InventoryItemEnhanced(
-                    user_id=user_id,
-                    ingredient_name=ingredient_name,
-                    quantity=quantity,
-                    unit=unit,
-                    category="voice_added",
-                    last_voice_update=datetime.utcnow(),
-                    voice_notes=original_text
-                )
-                self.db.add(new_item)
-                self.db.flush()  # Get the ID
-                
-                # Record stock movement
-                movement = StockMovement(
-                    inventory_item_id=new_item.id,
-                    user_id=user_id,
-                    movement_type="voice_addition",
-                    quantity_change=quantity,
-                    quantity_before=0,
-                    quantity_after=quantity,
-                    reason="new_item_voice",
-                    voice_input=True,
-                    voice_confidence=confidence
-                )
-                self.db.add(movement)
-                self.db.commit()
-                
-                return {
-                    "success": True,
-                    "message": f"Added new item: {quantity} {unit} of {ingredient_name}",
-                    "action": "created_new",
-                    "item_id": new_item.id
-                }
-                
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"Error adding inventory via voice: {str(e)}")
-            return {
-                "success": False,
-                "message": f"Error adding inventory: {str(e)}"
-            }
+        """Reject legacy voice-based stock additions."""
+        reject_enhanced_inventory_write()
     
     def _use_inventory(self, user_id: str, data: Dict, original_text: str, confidence: float) -> Dict:
-        """Record inventory usage via voice command"""
-        try:
-            ingredient_name = data["ingredient"].lower()
-            quantity = data["quantity"]
-            unit = data["unit"]
-            
-            # Find existing inventory item
-            inventory_item = self.db.query(InventoryItemEnhanced).filter(
-                InventoryItemEnhanced.user_id == user_id,
-                InventoryItemEnhanced.ingredient_name.ilike(f"%{ingredient_name}%")
-            ).first()
-            
-            if not inventory_item:
-                return {
-                    "success": False,
-                    "message": f"Could not find {ingredient_name} in inventory"
-                }
-            
-            old_quantity = inventory_item.quantity
-            
-            if inventory_item.quantity < quantity:
-                return {
-                    "success": False,
-                    "message": f"Not enough {ingredient_name} in stock. Available: {inventory_item.quantity} {inventory_item.unit}, Requested: {quantity} {unit}"
-                }
-            
-            # Update quantity
-            inventory_item.quantity -= quantity
-            inventory_item.last_updated = datetime.utcnow()
-            inventory_item.last_voice_update = datetime.utcnow()
-            inventory_item.voice_notes = original_text
-            
-            # Record stock movement
-            movement = StockMovement(
-                inventory_item_id=inventory_item.id,
-                user_id=user_id,
-                movement_type="voice_usage",
-                quantity_change=-quantity,  # Negative for usage
-                quantity_before=old_quantity,
-                quantity_after=inventory_item.quantity,
-                reason="dish_preparation",
-                voice_input=True,
-                voice_confidence=confidence
-            )
-            self.db.add(movement)
-            self.db.commit()
-            
-            return {
-                "success": True,
-                "message": f"Used {quantity} {unit} of {ingredient_name}. Remaining: {inventory_item.quantity} {inventory_item.unit}",
-                "action": "used_inventory",
-                "item_id": inventory_item.id,
-                "remaining_quantity": inventory_item.quantity
-            }
-            
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"Error using inventory via voice: {str(e)}")
-            return {
-                "success": False,
-                "message": f"Error using inventory: {str(e)}"
-            }
+        """Reject legacy voice-based stock consumption."""
+        reject_enhanced_inventory_write()
     
     def _check_inventory(self, user_id: str, data: Dict) -> Dict:
         """Check inventory levels via voice command"""

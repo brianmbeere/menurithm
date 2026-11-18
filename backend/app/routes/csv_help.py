@@ -69,6 +69,7 @@ def get_csv_formats() -> Dict[str, Any]:
             "required_columns": [
                 "dish_name",
                 "description",
+                "recipe_yield",
                 "ingredient_name", 
                 "quantity",
                 "unit"
@@ -76,6 +77,7 @@ def get_csv_formats() -> Dict[str, Any]:
             "column_descriptions": {
                 "dish_name": "Name of the dish (text)",
                 "description": "Description of the dish (text, optional)",
+                "recipe_yield": "Number of servings made by the ingredient quantities for this dish (required for automatic inventory deductions)",
                 "ingredient_name": "Name of ingredient used in the dish (must exist in inventory)",
                 "quantity": "Amount of this ingredient needed for the dish (number)",
                 "unit": "Unit of measurement for the ingredient (text)"
@@ -83,6 +85,7 @@ def get_csv_formats() -> Dict[str, Any]:
             "data_types": {
                 "dish_name": "string",
                 "description": "string (optional)",
+                "recipe_yield": "positive number of servings (repeat the same value for each row in the dish)",
                 "ingredient_name": "string",
                 "quantity": "number",
                 "unit": "string"
@@ -91,6 +94,7 @@ def get_csv_formats() -> Dict[str, Any]:
                 {
                     "dish_name": "Chicken Salad",
                     "description": "Fresh chicken salad with vegetables",
+                    "recipe_yield": 4,
                     "ingredient_name": "chicken breast",
                     "quantity": 0.5,
                     "unit": "kg"
@@ -98,6 +102,7 @@ def get_csv_formats() -> Dict[str, Any]:
                 {
                     "dish_name": "Chicken Salad", 
                     "description": "Fresh chicken salad with vegetables",
+                    "recipe_yield": 4,
                     "ingredient_name": "tomatoes",
                     "quantity": 0.2,
                     "unit": "kg"
@@ -105,6 +110,7 @@ def get_csv_formats() -> Dict[str, Any]:
                 {
                     "dish_name": "Pasta Marinara",
                     "description": "Classic pasta with tomato sauce", 
+                    "recipe_yield": 1,
                     "ingredient_name": "tomatoes",
                     "quantity": 0.3,
                     "unit": "kg"
@@ -112,6 +118,7 @@ def get_csv_formats() -> Dict[str, Any]:
             ],
             "notes": [
                 "Multiple rows can have the same dish_name to specify different ingredients",
+                "Set recipe_yield consistently on every row for a dish; legacy recipes without a confirmed yield are not deducted from inventory",
                 "All ingredients must already exist in your inventory before uploading dishes",
                 "Ingredient names will be matched case-insensitively", 
                 "Description field is optional but recommended",

@@ -5,6 +5,7 @@ import { authFetch } from "../hooks/authFetch";
 interface DishInput {
   name: string;
   description?: string;
+  recipe_yield?: number | null;
   ingredients: DishIngredientInput[];
 }
 

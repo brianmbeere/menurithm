@@ -21,12 +21,12 @@ order workflow. Request customer pickup or farmer delivery with a preferred
 window and handling requirements. Delivery requires an address; pickup does not.
 
 A farmer quotes the fulfillment method they can offer, pickup address where
-needed, handover instructions and USD delivery fee. Review the exact quote,
+needed, handover instructions, a USD produce subtotal and delivery fee. Review the exact quote,
 explicitly check the agreement box and accept it. Stale quote revisions are
 rejected and require a refresh/review. Accepted terms are immutable.
-Pickup has a zero delivery fee. **Produce pricing and all payments are arranged
-directly with the farmer; accepting terms never charges a card.** Requests do
-not automatically reserve stock or add purchased produce to kitchen inventory.
+Pickup has a zero delivery fee. **Pay the farmer directly; accepting terms
+never charges a card.** Accepting a new quote reserves the listed stock;
+canceling before handover releases it. Neither action updates kitchen stock.
 Refresh orders to see farmer-confirmed ready/collected/delivered progress.
 
 The server-only `FULFILLMENT_BRIDGE_KEY` must match the Croprithm API setting.
@@ -52,6 +52,52 @@ validation remains a separate pilot task.
 Menurithm's primary green is `#03D069`, sampled from its logo. Dark green text
 is used on this bright background instead of low-contrast white; darker
 companion greens are reserved for readable text on white.
+
+## Sale-driven inventory deductions
+
+Manual sale entry and sales CSV uploads deduct recipe ingredients only when the
+dish has an explicitly confirmed recipe yield. Existing recipes have no assumed
+yield; save the dish with the number of servings its ingredient quantities make
+before recording sales. Recipe quantities are converted only across supported
+compatible units, and sales that cannot be safely processed remain visible with
+a reason and do not deduct stock.
+
+Sales created through the API should send a unique `Idempotency-Key` header and
+reuse it when retrying the same request. Identical CSV uploads are recognized by
+file content and row number. Corrections and cancellations create compensating
+inventory movements; inventory history is available from the Inventory screen.
+
+For an existing database, back it up and run
+`python migrations/add_sales_inventory_automation.py` from `backend` before
+deploying this version. The migration is additive and does not infer a yield
+for existing recipes or backfill legacy recipe quantities into the new precise
+quantity field. Existing sales are labeled as historical/unprocessed, not
+deducted. Edit and save legacy recipes to confirm their quantities and serving
+yield before processing new sales.
+
+Restaurant inventory items now support an optional reorder point. The Inventory
+screen flags stock at or below that threshold and can open a Croprithm listing
+search for the ingredient. Selecting a listing opens a request; stock is
+reserved when the restaurant accepts the farmer's new quote. When the farmer
+marks handover complete, the restaurant can confirm the actual quantity received
+to add one idempotent movement to recipe-linked kitchen inventory.
+When an order is opened from a low-stock ingredient, the request preselects that
+kitchen item and suggests enough produce to reach its reorder point. The
+restaurant still reviews the request and confirms the actual quantity received.
+After confirmation, a downloadable PDF receiving record is available from the
+order. It documents the received quantity and resulting stock movement; it is
+not a purchase invoice or proof of payment.
+
+Deploy the additive Croprithm fulfillment migration with
+`python migrate_fulfillment.py` from its `backend` directory before deploying
+the connected Menurithm API. The older `inventory_enhanced` data model remains
+separate and is read-only: its voice updates, enhanced inventory CSV import, and
+legacy delivery receipt endpoints return HTTP 410, and the Inventory screen no
+longer offers voice stock updates. This flow updates the recipe-linked
+`inventory` table only and does not merge potentially conflicting records. Keep
+using the recipe-linked Inventory screen for stock changes until an explicit,
+reconciled migration is performed. Existing database records are preserved;
+this feature does not drop or reseed database data.
 
 ## Architecture (High-Level)
 

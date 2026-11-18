@@ -5,6 +5,7 @@ export interface DishIngredient {
   ingredient_id: number;
   ingredient_name?: string; // for display
   quantity: number;
+  quantity_decimal?: number | string | null;
   unit: string;
 }
 
@@ -12,6 +13,7 @@ export interface Dish {
   id: number;
   name: string;
   description?: string;
+  recipe_yield?: number | null;
   ingredients: DishIngredient[];
 }
 

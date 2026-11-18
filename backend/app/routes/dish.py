@@ -1,6 +1,7 @@
 from collections import defaultdict
 import csv
 from datetime import datetime
+from decimal import Decimal
 from io import StringIO
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Header
 from sqlalchemy.orm import Session
@@ -38,6 +39,7 @@ def create_dish(
     dish = Dish(
         name=dish_in.name,
         description=dish_in.description,
+        recipe_yield=dish_in.recipe_yield,
         user_id=user.email  # 👈 assign ownership
     )
 
@@ -51,7 +53,8 @@ def create_dish(
 
         dish.ingredients.append(DishIngredient(
             ingredient_id=ing.ingredient_id,
-            quantity=ing.quantity,
+            quantity=float(ing.quantity),
+            quantity_decimal=ing.quantity,
             unit=ing.unit,
             user_id=user.email,
         ))
@@ -96,6 +99,7 @@ def create_dish_service(
     dish = Dish(
         name=dish_request.name,
         description=dish_request.description,
+        recipe_yield=dish_request.recipe_yield,
         user_id=target_user_email
     )
 
@@ -112,7 +116,8 @@ def create_dish_service(
 
         dish.ingredients.append(DishIngredient(
             ingredient_id=ing.ingredient_id,
-            quantity=ing.quantity,
+            quantity=float(ing.quantity),
+            quantity_decimal=ing.quantity,
             unit=ing.unit,
             user_id=target_user_email,
         ))
@@ -154,6 +159,7 @@ def create_dishes_batch_service(
             dish = Dish(
                 name=dish_in.name,
                 description=dish_in.description,
+                recipe_yield=dish_in.recipe_yield,
                 user_id=target_user_email
             )
             
@@ -170,7 +176,8 @@ def create_dishes_batch_service(
                     
                 dish.ingredients.append(DishIngredient(
                     ingredient_id=ing.ingredient_id,
-                    quantity=ing.quantity,
+                    quantity=float(ing.quantity),
+                    quantity_decimal=ing.quantity,
                     unit=ing.unit,
                     user_id=target_user_email,
                 ))
@@ -213,7 +220,10 @@ def delete_dish(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.email).first()
+    dish = db.query(Dish).filter(
+        Dish.id == dish_id,
+        Dish.user_id == user.email,
+    ).with_for_update().first()
     if not dish:
         raise HTTPException(status_code=404, detail="Dish not found")
 
@@ -228,12 +238,16 @@ def update_dish(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.user_id == user.email).first()
+    dish = db.query(Dish).filter(
+        Dish.id == dish_id,
+        Dish.user_id == user.email,
+    ).with_for_update().first()
     if not dish:
         raise HTTPException(status_code=404, detail="Dish not found")
 
     dish.name = dish_data.name
     dish.description = dish_data.description
+    dish.recipe_yield = dish_data.recipe_yield
     dish.ingredients.clear()
 
     for ing in dish_data.ingredients:
@@ -246,8 +260,10 @@ def update_dish(
 
         dish.ingredients.append(DishIngredient(
             ingredient_id=ing.ingredient_id,
-            quantity=ing.quantity,
+            quantity=float(ing.quantity),
+            quantity_decimal=ing.quantity,
             unit=ing.unit,
+            user_id=user.email,
         ))
 
     db.commit()
@@ -281,7 +297,6 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
         for dish_name, rows in dishes.items():
             try:
                 description = rows[0].get("description", "").strip() or None
-
                 # Check if dish already exists
                 existing_dish = db.query(Dish).filter(
                     Dish.name.ilike(dish_name),
@@ -291,9 +306,28 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
                     skipped_dishes.append(f"Dish '{dish_name}' already exists")
                     continue
 
+                recipe_yield_values = [
+                    (row.get("recipe_yield") or "").strip()
+                    for row in rows
+                ]
+                specified_recipe_yields = [
+                    value for value in recipe_yield_values if value
+                ]
+                if specified_recipe_yields and len(specified_recipe_yields) != len(rows):
+                    raise ValueError("Set recipe_yield consistently on every row for this dish")
+                recipe_yields = {Decimal(value) for value in specified_recipe_yields}
+                if len(recipe_yields) > 1:
+                    raise ValueError("All rows for a dish must use the same recipe_yield")
+                recipe_yield = next(iter(recipe_yields), None)
+                if recipe_yield is not None and (
+                    not recipe_yield.is_finite() or recipe_yield <= 0
+                ):
+                    raise ValueError("recipe_yield must be a positive finite number")
+
                 new_dish = Dish(
                     name=dish_name,
                     description=description,
+                    recipe_yield=recipe_yield,
                     user_id=user.email,
                 )
                 db.add(new_dish)
@@ -311,12 +345,22 @@ async def upload_dishes(file: UploadFile = File(...), user: User = Depends(get_c
                     if not inventory_item:
                         errors.append(f"Ingredient '{ingredient_name}' not found in inventory for dish '{dish_name}'")
                         continue
+
+                    quantity = Decimal(row["quantity"])
+                    if not quantity.is_finite() or quantity <= 0:
+                        raise ValueError(
+                            f"Ingredient quantity for '{ingredient_name}' must be positive and finite"
+                        )
+                    unit = row["unit"].strip()
+                    if not unit:
+                        raise ValueError(f"Ingredient '{ingredient_name}' must have a unit")
                    
                     dish_ingredient = DishIngredient(
                         dish_id=new_dish.id,
                         ingredient_id=inventory_item.id,
-                        quantity=float(row["quantity"]),
-                        unit=row["unit"].strip(),
+                        quantity=float(quantity),
+                        quantity_decimal=quantity,
+                        unit=unit,
                         user_id=user.email,
                     )
                     db.add(dish_ingredient)

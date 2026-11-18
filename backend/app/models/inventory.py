@@ -9,6 +9,7 @@ class InventoryItem(Base):
     user_id = Column(String, nullable=False)  # Changed from Integer to String (email)
     ingredient_name = Column(String, nullable=False) 
     quantity = Column(String)
+    reorder_point = Column(String, nullable=False, default="0")
     unit = Column(String)
     category = Column(String)
     expiry_date = Column(Date)
@@ -20,4 +21,3 @@ class InventoryItem(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'ingredient_name', name='uq_user_ingredient_name'),
     )
-

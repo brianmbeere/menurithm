@@ -10,6 +10,9 @@ export interface Sale {
   };
   quantity_sold: number;
   price_per_unit: number;
+  processing_status: "legacy" | "pending" | "processed" | "needs_attention" | "canceled";
+  processing_error?: string | null;
+  processed_at?: string | null;
 }
 
 export const fetchSales = async (): Promise<Sale[]> => {

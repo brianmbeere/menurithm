@@ -6,13 +6,19 @@ interface ProduceOrderDialogProps {
   onClose: () => void;
   onSuccess: (result: { request_id: number; message: string }) => void;
   onError: (error: string) => void;
+  initialInventoryItemId?: number;
 }
 
-export const ProduceOrderDialog = ({ open, onClose, onSuccess }: ProduceOrderDialogProps) => (
+export const ProduceOrderDialog = ({
+  open,
+  onClose,
+  onSuccess,
+  initialInventoryItemId,
+}: ProduceOrderDialogProps) => (
   <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" aria-labelledby="produce-order-title">
     <DialogTitle id="produce-order-title">Source fresh produce</DialogTitle>
     <DialogContent>
-      {open && <ProduceOrders onCreated={order => onSuccess({
+      {open && <ProduceOrders initialInventoryItemId={initialInventoryItemId} onCreated={order => onSuccess({
         request_id: order.request_id, message: 'Request sent. Review and accept the farmer quote in Produce orders.',
       })} />}
     </DialogContent>

@@ -3,7 +3,7 @@ import {
   Box, Paper, Typography, Grid, TextField, Button, Divider,
   Table, TableHead, TableRow, TableCell, TableBody, TablePagination,
   IconButton, Snackbar, Alert, Tooltip, Dialog, DialogTitle, DialogContent,
-  DialogContentText, DialogActions, Checkbox
+  DialogContentText,   DialogActions, Checkbox, Chip
 } from "@mui/material";
 import { type SaleInput, addSale } from "../api/addSales";
 import { deleteSale } from "../api/deleteSale";
@@ -32,24 +32,38 @@ const SalesManager = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState<number | null>(null);
   const [selectedSales, setSelectedSales] = useState<Set<number>>(new Set());
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   useEffect(() => { fetchSales().then(setSales).catch(console.error); }, []);
   const refreshSales = () => fetchSales().then(setSales);
 
   const showSnackbar = (message: string, severity: "success" | "error") => setSnackbar({ message, severity });
 
+  const updateForm = (nextForm: SaleInput) => {
+    setForm(nextForm);
+    if (editSaleId === null) setIdempotencyKey(crypto.randomUUID());
+  };
+
   const handleSubmit = async () => {
     try {
+      let result: Sale | undefined;
       if (editSaleId !== null) {
-        await updateSale(editSaleId, form);
-        showSnackbar("Sale updated successfully!", "success");
+        result = await updateSale(editSaleId, form);
       } else {
-        await addSale(form);
-        showSnackbar("Sale recorded successfully!", "success");
+        result = await addSale(form, idempotencyKey);
       }
+      showSnackbar(
+        result?.processing_status === "needs_attention"
+          ? result.processing_error || "Sale saved, but inventory was not deducted."
+          : editSaleId !== null
+            ? "Sale corrected and inventory history updated."
+            : "Sale recorded and inventory updated.",
+        result?.processing_status === "needs_attention" ? "error" : "success",
+      );
       refreshSales();
       setForm({ timestamp: "", dish_name: "", quantity_sold: 0, price_per_unit: 0 });
       setEditSaleId(null);
+      setIdempotencyKey(crypto.randomUUID());
     } catch (err: any) {
       showSnackbar(err.message, "error");
     }
@@ -63,7 +77,14 @@ const SalesManager = () => {
       const uploadResult = await uploadSalesFile(csvFile);
       console.log('📤 Sales upload result:', uploadResult);
       
-      showSnackbar("CSV uploaded!", "success");
+      const duplicates = uploadResult.summary?.duplicates_skipped || 0;
+      const attention = uploadResult.details?.added_sales?.filter(
+        (sale: { processing_status?: string }) => sale.processing_status === "needs_attention",
+      ).length || 0;
+      showSnackbar(
+        `CSV processed. ${duplicates} duplicate row(s) skipped; ${attention} sale(s) need attention.`,
+        attention ? "error" : "success",
+      );
       setCsvFile(null);
       
       console.log('🔄 Refreshing sales data...');
@@ -96,7 +117,7 @@ const SalesManager = () => {
     if (saleToDelete === null) return;
     try {
       await deleteSale(saleToDelete);
-      showSnackbar("Sale deleted", "success");
+      showSnackbar("Sale canceled; any recorded ingredient usage was restored.", "success");
       refreshSales();
     } catch (err: any) {
       showSnackbar(err.message, "error");
@@ -137,9 +158,11 @@ const SalesManager = () => {
       );
       await Promise.all(deletePromises);
       
-      setSales(prev => prev.filter(sale => !selectedSales.has(sale.id)));
+      setSales(prev => prev.map(sale => selectedSales.has(sale.id)
+        ? { ...sale, processing_status: "canceled", processing_error: null }
+        : sale));
       setSelectedSales(new Set());
-      showSnackbar(`Successfully deleted ${selectedSales.size} sales`, "success");
+      showSnackbar(`Canceled ${selectedSales.size} sales and reversed processed usage.`, "success");
     } catch (err: any) {
       showSnackbar("Some sales failed to delete", "error");
     }
@@ -160,28 +183,28 @@ const SalesManager = () => {
           <TextField
             fullWidth label="Date" type="date" InputLabelProps={{ shrink: true }}
             value={form.timestamp}
-            onChange={(e) => setForm({ ...form, timestamp: e.target.value })}
+            onChange={(e) => updateForm({ ...form, timestamp: e.target.value })}
           />
         </Grid>
         <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Dish Name"
             value={form.dish_name}
-            onChange={(e) => setForm({ ...form, dish_name: e.target.value })}
+            onChange={(e) => updateForm({ ...form, dish_name: e.target.value })}
           />
         </Grid>
         <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Qty" type="number"
             value={form.quantity_sold}
-            onChange={(e) => setForm({ ...form, quantity_sold: parseInt(e.target.value) })}
+            onChange={(e) => updateForm({ ...form, quantity_sold: parseInt(e.target.value) })}
           />
         </Grid>
         <Grid size={{ xs:6, sm:3, md:2 }}>
           <TextField
             fullWidth label="Unit Price" type="number"
             value={form.price_per_unit}
-            onChange={(e) => setForm({ ...form, price_per_unit: parseFloat(e.target.value) })}
+            onChange={(e) => updateForm({ ...form, price_per_unit: parseFloat(e.target.value) })}
           />
         </Grid>
         <Grid size={{ xs:12, md:2 }}>
@@ -270,6 +293,7 @@ const SalesManager = () => {
               <TableCell>Dish</TableCell>
               <TableCell>Quantity</TableCell>
               <TableCell>Price</TableCell>
+              <TableCell>Inventory status</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -289,13 +313,24 @@ const SalesManager = () => {
                 <TableCell>{s.dish.name}</TableCell>
                 <TableCell>{s.quantity_sold}</TableCell>
                 <TableCell>${s.price_per_unit.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Tooltip title={s.processing_error || ""}>
+                    <Chip
+                      size="small"
+                      color={s.processing_status === "processed" ? "success" : s.processing_status === "needs_attention" ? "warning" : "default"}
+                      label={s.processing_status.replace("_", " ")}
+                    />
+                  </Tooltip>
+                </TableCell>
                 <TableCell align="right">
-                  <Tooltip title="Edit">
-                    <IconButton onClick={() => handleEdit(s)}><Edit /></IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton color="error" onClick={() => handleDelete(s.id)}><Delete /></IconButton>
-                  </Tooltip>
+                  {s.processing_status !== "canceled" && <>
+                    <Tooltip title="Correct sale">
+                      <IconButton onClick={() => handleEdit(s)}><Edit /></IconButton>
+                    </Tooltip>
+                    <Tooltip title="Cancel sale">
+                      <IconButton color="error" onClick={() => handleDelete(s.id)}><Delete /></IconButton>
+                    </Tooltip>
+                  </>}
                 </TableCell>
               </TableRow>
             ))}
@@ -327,15 +362,15 @@ const SalesManager = () => {
       </Snackbar>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogTitle>Cancel sale</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this sale? This action cannot be undone.
+            Cancel this sale? If its ingredients were deducted, Menurithm will record a reversal in inventory history.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)} color="primary">Cancel</Button>
-          <Button onClick={confirmDelete} color="error" autoFocus>Delete</Button>
+          <Button onClick={confirmDelete} color="error" autoFocus>Cancel sale</Button>
         </DialogActions>
       </Dialog>
 

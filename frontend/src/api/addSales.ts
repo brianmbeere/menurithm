@@ -8,11 +8,10 @@ export interface SaleInput {
   price_per_unit: number;
 }
 
-export const addSale = async (sale: SaleInput) => {
-  console.log("Adding sale:", sale);
+export const addSale = async (sale: SaleInput, idempotencyKey: string) => {
   const res = await authFetch(`${BASE_URL}/sales`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify(sale),
   });
 

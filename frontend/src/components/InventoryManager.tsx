@@ -3,7 +3,7 @@ import {
   CardContent, Typography, Table, TableHead, TableRow,Autocomplete,
   TableCell, TableBody, TextField, IconButton, Button, Grid,
   Divider, TablePagination, Tooltip, Snackbar, Alert, Paper, Box,
-  Checkbox
+  Checkbox, Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import { Delete, Edit, Save, UploadFile, Add } from "./SVGIcons";
 import { updateInventory, type InventoryItem } from "../api/updateInventory";
@@ -13,17 +13,20 @@ import fetchInventory from "../api/fetchInventory";
 import addInventory from "../api/addInventory";
 import { advancedInventoryAPI } from "../api/advancedInventory";
 import CSVHelpDialog from "./CSVHelpDialog";
-import VoiceRecordingDialog from "./VoiceRecordingDialog";
 import ProduceOrderDialog from "./ProduceOrderDialog";
 import { formatDate } from "../utils";
+import { fetchInventoryMovements, type InventoryMovement } from "../api/fetchInventoryMovements";
+import { fetchLowStockInventory } from "../api/fetchLowStockInventory";
 
 const InventoryManager = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editedRow, setEditedRow] = useState<Partial<InventoryItem>>({});
   const [newRow, setNewRow] = useState<Partial<InventoryItem>>({
     ingredient_name: "",
     quantity: "",
+    reorder_point: "0",
     unit: "",
     category: "",
     expiry_date: "",
@@ -46,13 +49,27 @@ const InventoryManager = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
   const [snackbar, setSnackbar] = useState<{ message: string; severity: "success" | "error" | "info" } | null>(null);
-  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [produceOrderDialogOpen, setProduceOrderDialogOpen] = useState(false);
+  const [produceInventoryItemId, setProduceInventoryItemId] = useState<number | undefined>();
+  const [historyItem, setHistoryItem] = useState<string | null>(null);
+  const [history, setHistory] = useState<InventoryMovement[]>([]);
+  const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
-    fetchInventory().then(setInventory);
+    Promise.all([fetchInventory(), fetchLowStockInventory()])
+      .then(([items, lowStock]) => {
+        setInventory(items);
+        setLowStockItems(lowStock);
+      })
+      .catch(() => showSnackbar("Failed to load inventory and reorder alerts", "error"));
   }, []);
+
+  const refreshInventory = async () => {
+    const [items, lowStock] = await Promise.all([fetchInventory(), fetchLowStockInventory()]);
+    setInventory(items);
+    setLowStockItems(lowStock);
+  };
 
   const showSnackbar = (message: string, severity: "success" | "error") =>
     setSnackbar({ message, severity });
@@ -73,14 +90,32 @@ const InventoryManager = () => {
     );
     const updated = { ...inventory[globalIndex], ...editedRow };
     try {
-      await updateInventory(updated);
+      if (updated.quantity !== inventory[globalIndex].quantity) {
+        const reason = window.prompt("Why are you adjusting this stock quantity?");
+        if (!reason?.trim()) return;
+        await updateInventory({ ...updated, adjustment_reason: reason.trim() });
+      } else {
+        await updateInventory(updated);
+      }
       const newList = [...inventory];
       newList[globalIndex] = updated;
       setInventory(newList);
       setEditIndex(null);
+      setLowStockItems(await fetchLowStockInventory());
       showSnackbar("Item updated successfully", "success");
     } catch {
       showSnackbar("Failed to update item", "error");
+    }
+  };
+
+  const handleShowHistory = async (ingredientName: string) => {
+    setHistoryItem(ingredientName);
+    setHistory([]);
+    setHistoryError("");
+    try {
+      setHistory(await fetchInventoryMovements(ingredientName));
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "Unable to load inventory history");
     }
   };
 
@@ -145,6 +180,7 @@ const InventoryManager = () => {
       setCsvFile(null);
       const updated = await fetchInventory();
       setInventory(updated);
+      setLowStockItems(await fetchLowStockInventory());
       showSnackbar("CSV uploaded successfully!", "success");
     } catch (err: any) {
       showSnackbar(err.message || "Upload failed", "error");
@@ -162,11 +198,13 @@ const InventoryManager = () => {
       setNewRow({
         ingredient_name: "",
         quantity: "",
+        reorder_point: "0",
         unit: "",
         category: "",
         expiry_date: "",
         storage_location: ""
       });
+      await refreshInventory();
       showSnackbar("Item added!", "success");
     } catch (err: any) {
       showSnackbar(err.message || "Add failed", "error");
@@ -203,25 +241,6 @@ const InventoryManager = () => {
     }
   };
 
-  const handleVoiceCommand = () => {
-    setVoiceDialogOpen(true);
-  };
-
-  const handleVoiceSuccess = async (result: any) => {
-    setSnackbar({ 
-      message: `✅ Voice command processed: ${result.message}`, 
-      severity: "success" 
-    });
-    await fetchInventory();
-  };
-
-  const handleVoiceError = (error: string) => {
-    setSnackbar({ 
-      message: `❌ Voice error: ${error}`, 
-      severity: "error" 
-    });
-  };
-
   const handleSmartAlerts = async () => {
     try {
       const alertsData = await advancedInventoryAPI.getAlerts('high');
@@ -249,6 +268,12 @@ const InventoryManager = () => {
         </Typography>
 
         <Divider sx={{ my: 2 }} />
+        {lowStockItems.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {lowStockItems.length} ingredient{lowStockItems.length === 1 ? "" : "s"} at or below your reorder point.
+            Review the flagged items and source produce from current Croprithm listings.
+          </Alert>
+        )}
 
         {/* Upload Section */}
         <Typography variant="subtitle1" gutterBottom>Upload Inventory CSV</Typography>
@@ -339,16 +364,6 @@ const InventoryManager = () => {
             <Button
               variant="outlined"
               fullWidth
-              onClick={handleVoiceCommand}
-              sx={{ color: 'secondary.main' }}
-            >
-              🎤 Voice Update
-            </Button>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 2.4 }}>
-            <Button
-              variant="outlined"
-              fullWidth
               onClick={handleSmartAlerts}
               sx={{ color: 'warning.main' }}
             >
@@ -390,6 +405,7 @@ const InventoryManager = () => {
                 <TableCell>#</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Quantity</TableCell>
+                <TableCell>Reorder point</TableCell>
                 <TableCell>Unit</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Expiry Date</TableCell>
@@ -402,7 +418,7 @@ const InventoryManager = () => {
               <TableRow sx={{ backgroundColor: "#fafafa" }}>
                   <TableCell></TableCell>
                   <TableCell>New</TableCell>
-                  {["ingredient_name", "quantity", "unit", "category", "expiry_date", "storage_location"].map((field) => (
+                  {["ingredient_name", "quantity", "reorder_point", "unit", "category", "expiry_date", "storage_location"].map((field) => (
                     <TableCell key={field}>
                       {["unit", "category", "storage_location"].includes(field) ? (
                         <Autocomplete
@@ -422,7 +438,7 @@ const InventoryManager = () => {
                       ) : (
                         <TextField
                           size="medium"
-                          type={field === "expiry_date" ? "date" : "text"}
+                          type={field === "expiry_date" ? "date" : field === "quantity" || field === "reorder_point" ? "number" : "text"}
                           placeholder={field.replace("_", " ")}
                           value={(newRow as any)[field]}
                           onChange={(e) => handleNewRowChange(field as keyof InventoryItem, e.target.value)}
@@ -456,11 +472,11 @@ const InventoryManager = () => {
                   <TableCell>{page * rowsPerPage + i + 1}</TableCell>
                   {editIndex === i ? (
                     <>
-                      {["ingredient_name", "quantity", "unit", "category", "expiry_date", "storage_location"].map((field: any) => (
+                      {["ingredient_name", "quantity", "reorder_point", "unit", "category", "expiry_date", "storage_location"].map((field: any) => (
                         <TableCell key={field}>
                           <TextField
                             size="small"
-                            type={field === "expiry_date" ? "date" : "text"}
+                            type={field === "expiry_date" ? "date" : field === "quantity" || field === "reorder_point" ? "number" : "text"}
                             value={(editedRow as any)[field]}
                             onChange={(e) => handleChange(field, e.target.value)}
                           />
@@ -478,11 +494,23 @@ const InventoryManager = () => {
                     <>
                       <TableCell>{item.ingredient_name}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
+                      <TableCell>{item.reorder_point}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{formatDate(item.expiry_date)}</TableCell>
                       <TableCell>{item.storage_location}</TableCell>
                       <TableCell>
+                        {lowStockItems.some(lowStock => lowStock.id === item.id) && (
+                          <Tooltip title="Find this ingredient in Croprithm">
+                            <Button size="small" onClick={() => {
+                              setProduceInventoryItemId(item.id);
+                              setProduceOrderDialogOpen(true);
+                            }}>Source</Button>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Inventory history">
+                          <Button size="small" onClick={() => void handleShowHistory(item.ingredient_name)}>History</Button>
+                        </Tooltip>
                         <Tooltip title="Edit">
                           <IconButton onClick={() => handleEdit(i)}><Edit /></IconButton>
                         </Tooltip>
@@ -518,18 +546,14 @@ const InventoryManager = () => {
         uploadType="inventory"
       />
 
-      {/* Voice Recording Dialog */}
-      <VoiceRecordingDialog
-        open={voiceDialogOpen}
-        onClose={() => setVoiceDialogOpen(false)}
-        onSuccess={handleVoiceSuccess}
-        onError={handleVoiceError}
-      />
-
       {/* Produce Order Dialog */}
       <ProduceOrderDialog
         open={produceOrderDialogOpen}
-        onClose={() => setProduceOrderDialogOpen(false)}
+        initialInventoryItemId={produceInventoryItemId}
+        onClose={() => {
+          setProduceOrderDialogOpen(false);
+          setProduceInventoryItemId(undefined);
+        }}
         onSuccess={(result) => {
           setSnackbar({
             message: result.message,
@@ -543,6 +567,26 @@ const InventoryManager = () => {
           });
         }}
       />
+
+      <Dialog open={historyItem !== null} onClose={() => setHistoryItem(null)} fullWidth maxWidth="md">
+        <DialogTitle>Inventory history: {historyItem}</DialogTitle>
+        <DialogContent>
+          {historyError && <Alert severity="error">{historyError}</Alert>}
+          {!historyError && history.length === 0 && <Typography>No stock movements recorded.</Typography>}
+          {history.map(movement => (
+            <Box key={movement.id} sx={{ py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+              <Typography fontWeight={600}>
+                {movement.movement_type.replace(/_/g, " ")} · {movement.quantity_change} {movement.unit}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {movement.quantity_before} → {movement.quantity_after} {movement.unit} · {movement.reason} · {formatDate(movement.created_at)}
+                {movement.sale_id ? ` · Sale #${movement.sale_id}` : ""}
+              </Typography>
+            </Box>
+          ))}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setHistoryItem(null)}>Close</Button></DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar
