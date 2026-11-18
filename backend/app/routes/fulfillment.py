@@ -3,6 +3,7 @@ import os
 from decimal import Decimal
 from typing import Literal
 from urllib.parse import urlencode
+from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -52,6 +53,27 @@ class CartLine(BaseModel):
 
 class CartPreview(BaseModel):
     lines: list[CartLine] = Field(min_length=1, max_length=50)
+
+
+class PickupCheckoutInput(CartPreview):
+    window_id: int = Field(gt=0)
+    attempt_key: UUID
+    expected_subtotal: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    restaurant_name: str = Field(min_length=1, max_length=200)
+
+
+@router.post("/marketplace/pickup-checkouts")
+async def start_pickup_checkout(data: PickupCheckoutInput, user: User = Depends(get_current_user)):
+    payload = data.model_dump(mode="json")
+    payload["customer_contact"] = user.email
+    return await forward("POST", "marketplace/pickup-checkouts", user.firebase_uid, payload)
+
+
+@router.post("/marketplace/pickup-checkouts/{identifier}/cancel")
+async def cancel_pickup_checkout(
+    identifier: int, user: User = Depends(get_current_user),
+):
+    return await forward("POST", f"marketplace/pickup-checkouts/{identifier}/cancel", user.firebase_uid)
 
 
 @router.post("/marketplace/checkout-preview")

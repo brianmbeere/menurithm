@@ -85,6 +85,27 @@ def test_cart_preview_forwards_exact_quantities_with_authenticated_customer(clie
     assert client.post(endpoint, json={"lines": [{"listing_id": 9, "quantity": "0.0001"}]}).status_code == 422
 
 
+def test_pickup_checkout_forwards_authenticated_contact_and_order_terms(client, monkeypatch):
+    import json
+
+    def handler(request):
+        body = json.loads(request.read())
+        assert request.url.path == "/api/fulfillment/marketplace/pickup-checkouts"
+        assert request.headers["x-customer-id"] == "customer-one"
+        assert body["customer_contact"] == "customer@example.com"
+        assert body["expected_subtotal"] == "3.50"
+        return httpx.Response(200, json={"id": 8, "state": "placed", "payment_method": "pay_at_pickup"})
+
+    mock_upstream(monkeypatch, handler)
+    response = client.post("/api/fulfillment/marketplace/pickup-checkouts", json={
+        "lines": [{"listing_id": 10, "quantity": "1"}], "window_id": 1,
+        "attempt_key": "ecc8a9d8-6ab5-4e31-bd6e-2d55d472246a", "expected_subtotal": "3.50",
+        "restaurant_name": "Kitchen", "customer_contact": "ignored@example.com",
+    })
+    assert response.status_code == 200
+    assert response.json()["state"] == "placed"
+
+
 def test_quote_revision_is_forwarded_and_conflicts_are_not_success(client, monkeypatch):
     def handler(request):
         assert request.url.path == "/api/fulfillment/orders/8/accept"

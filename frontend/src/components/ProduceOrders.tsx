@@ -12,6 +12,7 @@ import { type InventoryItem } from '../api/updateInventory';
 import { fetchCroprithmProduce, type CroprithmProduceListing } from '../api/fetchCroprithmProduce';
 
 interface Order {
+  pickup_checkout_id?: number | null;
   id: number;
   request_id: number;
   restaurant_name: string;
@@ -242,11 +243,17 @@ export default function ProduceOrders({
     } finally { setBusy(false); }
   };
   const cancel = async (order: Order) => {
-    if (!window.confirm('Cancel this produce order and release any reserved stock?')) return;
+    if (!window.confirm(order.pickup_checkout_id ? 'Cancel all items in this pickup order?' : 'Cancel this produce order and release any reserved stock?')) return;
     setBusy(true); setError(''); setNotice('');
     try {
-      const updated = await request<Order>(`orders/${order.id}/cancel`, { method: 'POST' });
-      setOrders(previous => previous.map(item => item.id === updated.id ? updated : item));
+      if (order.pickup_checkout_id) {
+        await request(`marketplace/pickup-checkouts/${order.pickup_checkout_id}/cancel`, { method: 'POST' });
+        setOrders(previous => previous.map(item => item.pickup_checkout_id === order.pickup_checkout_id
+          ? { ...item, stage: 'canceled', stock_reserved: false } : item));
+      } else {
+        const updated = await request<Order>(`orders/${order.id}/cancel`, { method: 'POST' });
+        setOrders(previous => previous.map(item => item.id === updated.id ? updated : item));
+      }
       setNotice('Order canceled. If you already paid, contact the farmer directly.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to cancel the order.');
@@ -372,6 +379,7 @@ export default function ProduceOrders({
             <Typography fontWeight={650}>{methodName(order.method)} · {order.fee === null ? 'Awaiting fee quote' : `${order.currency} ${order.fee} delivery fee`}</Typography>
             {order.sale_total != null && <Typography>Produce: {order.currency} {order.produce_total} · Total: {order.currency} {order.sale_total}</Typography>}
             {order.stock_reserved && <Typography>Stock reserved</Typography>}
+            {order.pickup_checkout_id && <Chip label={`Pickup #${order.pickup_checkout_id} · Pay farmer at pickup`} sx={{ alignSelf: 'flex-start' }} />}
             {order.payment_recorded_at && <Typography>Farmer recorded direct payment.</Typography>}
             {order.farmer_name && <Typography sx={{ overflowWrap: 'anywhere' }}>Farmer: {order.farmer_name} · {order.farmer_contact}</Typography>}
             <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
@@ -388,8 +396,12 @@ export default function ProduceOrders({
               <Button sx={{ alignSelf: 'flex-start' }} variant="contained"
                 disabled={busy || accepted[order.id] !== order.revision} onClick={() => accept(order)}>Accept these fulfillment terms</Button>
             </>}
-            {['requested', 'quoted', 'accepted', 'ready'].includes(order.stage) &&
-              <Button sx={{ alignSelf: 'flex-start' }} color="error" disabled={busy} onClick={() => void cancel(order)}>Cancel order</Button>}
+            {(order.pickup_checkout_id
+              ? order.stage === 'accepted' && orders.every(item => item.pickup_checkout_id !== order.pickup_checkout_id || item.stage === 'accepted')
+              : ['requested', 'quoted', 'accepted', 'ready'].includes(order.stage)) &&
+              <Button sx={{ alignSelf: 'flex-start' }} color="error" disabled={busy} onClick={() => void cancel(order)}>
+                {order.pickup_checkout_id ? 'Cancel entire pickup order' : 'Cancel order'}
+              </Button>}
             {order.menurithm_inventory_item_id && ['collected', 'delivered'].includes(order.stage) &&
               !order.inventory_received && (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>

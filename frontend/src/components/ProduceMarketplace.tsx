@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
-import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, Divider, MenuItem, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { fetchCroprithmProduce, type CroprithmProduceListing } from '../api/fetchCroprithmProduce';
 import { authFetch } from '../hooks/authFetch';
 import { BASE_URL } from '../utils';
@@ -10,8 +10,11 @@ type CartLine = { listing: CroprithmProduceListing; quantity: string };
 type Preview = {
   seller_name: string;
   produce_subtotal: string;
+  payment_method?: string;
+  pickup_windows?: { id: number; address: string; starts_at: string; ends_at: string }[];
   lines: { listing_id: number; produce_type: string; quantity: string; unit: string; line_total: string }[];
 };
+type Checkout = { id: number; state: 'placed' | 'canceled'; produce_subtotal: string };
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export default function ProduceMarketplace() {
@@ -24,6 +27,10 @@ export default function ProduceMarketplace() {
   const [reviewing, setReviewing] = useState(false);
   const [catalogError, setCatalogError] = useState('');
   const [cartError, setCartError] = useState('');
+  const [windowId, setWindowId] = useState('');
+  const [restaurantName, setRestaurantName] = useState('');
+  const [attempt, setAttempt] = useState('');
+  const [checkout, setCheckout] = useState<Checkout | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,6 +54,9 @@ export default function ProduceMarketplace() {
   const updateCart = (lines: CartLine[]) => {
     setCart(lines);
     setPreview(null);
+    setCheckout(null);
+    setAttempt('');
+    setWindowId('');
     setCartError('');
   };
   const add = (listing: CroprithmProduceListing) => {
@@ -62,6 +72,9 @@ export default function ProduceMarketplace() {
     setReviewing(true);
     setCartError('');
     setPreview(null);
+    setAttempt('');
+    setWindowId('');
+    setCheckout(null);
     try {
       const response = await authFetch(`${BASE_URL}/api/fulfillment/marketplace/checkout-preview`, {
         method: 'POST',
@@ -75,6 +88,35 @@ export default function ProduceMarketplace() {
       setPreview(await response.json());
     } catch (error) {
       setCartError(error instanceof Error ? error.message : 'Unable to review this cart.');
+    } finally { setReviewing(false); }
+  };
+
+  const placePickup = async () => {
+    if (!preview || !windowId || !restaurantName.trim() || reviewing) return;
+    setReviewing(true);
+    setCartError('');
+    try {
+      const base = `${BASE_URL}/api/fulfillment/marketplace/pickup-checkouts`;
+      const key = attempt || crypto.randomUUID();
+      setAttempt(key);
+      const response = await authFetch(base, {
+        method: 'POST',
+        body: JSON.stringify({
+          window_id: Number(windowId), attempt_key: key, restaurant_name: restaurantName,
+          expected_subtotal: preview.produce_subtotal,
+          lines: cart.map(({ listing, quantity }) => ({ listing_id: listing.id, quantity })),
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(typeof body?.detail === 'string' ? body.detail : 'Unable to place the pickup order.');
+      }
+      const updated: Checkout = await response.json();
+      setCheckout(updated);
+      setCart([]);
+      setPreview(null);
+    } catch (error) {
+      setCartError(error instanceof Error ? error.message : 'Unable to place the pickup order. Retry the same cart or check Orders & quotes before placing another order.');
     } finally { setReviewing(false); }
   };
 
@@ -92,7 +134,7 @@ export default function ProduceMarketplace() {
     </Tabs>
     {tab === 1 ? <Box role="tabpanel" id="produce-orders" aria-labelledby="produce-orders-tab"><ProduceOrders /></Box> :
       <Stack role="tabpanel" id="produce-shop" aria-labelledby="produce-shop-tab" spacing={2}>
-        <Alert severity="info">Checkout preview: no order, reservation, or charge is created. Use Orders & quotes to buy through the existing pilot.</Alert>
+        <Alert severity="info">Order at posted prices from farms with pickup windows and pay the farmer at pickup. Use Orders &amp; quotes for custom requests.</Alert>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(290px, 360px)' }, gap: 3, alignItems: 'start' }}>
           <Stack spacing={2}>
             <TextField fullWidth size="small" label="Search produce" value={search}
@@ -146,10 +188,26 @@ export default function ProduceMarketplace() {
                   {line.quantity} {line.unit} {line.produce_type}: {dollars.format(Number(line.line_total))}
                 </Typography>)}
                 <Typography fontWeight={750}>Produce subtotal: {dollars.format(Number(preview.produce_subtotal))}</Typography>
-                <Typography variant="body2">Delivery, taxes, and service fees are not calculated in this preview.</Typography>
-                <Button variant="outlined" disabled>Stripe Checkout not configured</Button>
-                <Typography variant="caption">Availability was checked, but stock is not held.</Typography>
+                <Typography variant="body2">Pickup only. No online payment or platform fee. Applicable taxes are not calculated here.</Typography>
+                {preview.payment_method !== 'pay_at_pickup' ? <Alert severity="info">Pickup checkout is not available. Use Orders &amp; quotes.</Alert>
+                : !preview.pickup_windows?.length ? <Alert severity="info">This farm has no upcoming pickup windows. Use Orders &amp; quotes to make a request.</Alert> : <>
+                  <TextField select label="Pickup window" value={windowId} disabled={reviewing}
+                    onChange={event => { setWindowId(event.target.value); setAttempt(''); setCheckout(null); }}>
+                    {preview.pickup_windows.map(window => <MenuItem key={window.id} value={String(window.id)} sx={{ whiteSpace: 'normal' }}>
+                      {new Date(window.starts_at).toLocaleString()} to {new Date(window.ends_at).toLocaleString()} / {window.address}
+                    </MenuItem>)}
+                  </TextField>
+                  <TextField label="Restaurant name" value={restaurantName} disabled={reviewing}
+                    slotProps={{ htmlInput: { maxLength: 200 } }}
+                    onChange={event => { setRestaurantName(event.target.value); setAttempt(''); setCheckout(null); }} />
+                  <Button variant="contained" disabled={reviewing || !windowId || !restaurantName.trim()}
+                    onClick={() => void placePickup()}>Place order · pay at pickup</Button>
+                </>}
               </Stack>}
+              {checkout?.state === 'placed' && <Alert severity="success">Pickup order #{checkout.id} placed. Pay the farmer at pickup.
+                <Button color="inherit" onClick={() => setTab(1)}>View orders</Button>
+              </Alert>}
+              {checkout?.state === 'canceled' && <Alert severity="info">That pickup order was canceled. Review the cart to start a new checkout.</Alert>}
             </Stack></CardContent>
           </Card>
         </Box>

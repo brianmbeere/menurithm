@@ -45,6 +45,13 @@ produce subtotal after Croprithm checks live price and stock. This does not
 place an order, reserve inventory, or contact Stripe. Delivery windows, taxes,
 and service fees are not calculated in the preview. Use **Orders & quotes**
 for the existing pilot flow.
+
+When the farm has posted pickup windows, select one and place the order at
+the posted price without a quote or online charge. Pay the farmer at pickup.
+Placing the order commits stock immediately. Review or cancel the whole order
+before the farmer marks any item ready in **Orders & quotes**. Cart pickup
+orders do not yet link their lines to kitchen inventory. See the [Croprithm
+pickup instructions](https://github.com/brianmbeere/croprithm#pay-at-pickup-checkout).
 Tests: from `backend`, run
 `python -m pytest tests/test_fulfillment.py tests/test_croprithm_config.py tests/test_database_config.py -q`.
 For a credential-free UI check, run Vite and open `/tests/fulfillment.html`.
