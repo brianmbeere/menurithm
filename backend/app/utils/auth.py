@@ -33,7 +33,9 @@ def get_current_user(authorization: str = Header(...), db: Session = Depends(get
 
     user_record = db.query(User).filter_by(firebase_uid=firebase_uid).first()
     if not user_record:
-        user_record = User(firebase_uid=firebase_uid, email=email)
+        if not email:
+            raise HTTPException(status_code=403, detail="An email address is required")
+        user_record = User(firebase_uid=firebase_uid, email=email, full_name=decoded.get("name") or "")
         db.add(user_record)
         db.commit()
         db.refresh(user_record)

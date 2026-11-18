@@ -6,6 +6,7 @@ from app.db.database import Base, engine
 from app.core.config import setup_cors
 from app.utils.auth_config import get_auth_config
 from app.routes import fulfillment
+from app.routes import restaurant_profile, square_sales
 import os
 import logging
 
@@ -49,6 +50,8 @@ app.include_router(csv_validation.router, prefix="/csv", tags=["CSV Validation"]
 app.include_router(advanced_inventory.router, tags=["Advanced AI Inventory"])
 app.include_router(advanced_inventory_ai.router, tags=["AI-Powered Inventory"])
 app.include_router(fulfillment.router)
+app.include_router(restaurant_profile.router)
+app.include_router(square_sales.router)
 
 # Test and demo routes for non-user access
 app.include_router(test_auth.router, tags=["Test & Authentication Demo"])

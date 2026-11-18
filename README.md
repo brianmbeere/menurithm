@@ -16,10 +16,19 @@ Menurithm processes operational data such as inventory levels and historical usa
 ## Pickup and farmer-delivery pilot
 
 Open **Purchasing → Produce marketplace** to shop listings and track orders.
-For a custom request, open **Orders & quotes**, use **Source produce** in
-Inventory, or open **Integrations → Croprithm produce**. These paths use the
+For a custom request, open **Orders & quotes** or use **Source produce** in
+Inventory. These paths use the
 same persistent quote workflow. Request customer pickup or farmer delivery with a preferred
 window and handling requirements. Delivery requires an address; pickup does not.
+
+In **Account settings → Restaurant profile**, save a contact name, restaurant name
+and one delivery address. When requesting farmer delivery, select **Use saved
+delivery address**, then review or edit the address for that request. Updating
+the profile does not change sign-in credentials or previously placed orders.
+
+The former Integrations page redirects to **Orders & quotes**. Account settings
+also links there. Service-to-service dish creation remains available through
+the API, not as a restaurant workspace page.
 
 A farmer quotes the fulfillment method they can offer, pickup address where
 needed, handover instructions, a USD produce subtotal and delivery fee. Review the exact quote,
@@ -64,6 +73,40 @@ Tests: from `backend`, run
 `python -m pytest tests/test_fulfillment.py tests/test_croprithm_config.py tests/test_database_config.py -q`.
 For a credential-free UI check, run Vite and open `/tests/fulfillment.html`.
 This dev-only fixture uses fake orders, not production writes.
+
+## Square POS sales import
+
+Open **Sales → Square POS** (also linked from Account settings). Connect a Square
+seller, select a location and up to seven days, and preview completed paid
+orders. Match each Square item variation you want to import to a Menurithm dish.
+Confirmation records the mapped sale lines and uses the existing recipe-based
+inventory workflow. Reimporting the same Square order line will not deduct
+stock again. This check does not recognize sales previously entered manually
+or through CSV. Unmapped items are skipped and can be imported later.
+
+This is an on-demand import, not a background sync. It uses USD base item
+prices before discounts and tax; it skips refunds, returns, non-itemized
+charges and measured quantities. Refunds after import must be handled in
+Menurithm if a correction is needed. The connection cannot take payments.
+Disconnecting deletes the credentials stored in Menurithm and preserves
+imported sales; remove the app in Square to revoke the grant there.
+
+Configure these on the **backend only**:
+
+| Variable | Value |
+|---|---|
+| `SQUARE_ENVIRONMENT` | `sandbox` for a test deployment or `production` for a live deployment |
+| `SQUARE_APPLICATION_ID` | Square application ID for the selected environment |
+| `SQUARE_APPLICATION_SECRET` | Matching Square OAuth application secret |
+| `SQUARE_REDIRECT_URI` | Exact OAuth redirect URL registered in Square, e.g. `https://menurithm.com/account` |
+| `SQUARE_TOKEN_KEY` | Stable Fernet key; generate with `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'` |
+
+Use Square Sandbox with a test workspace, not a live kitchen database.
+The backend creates the three new tables on startup via its standard
+metadata initialization; no existing records need to be rewritten. Keep
+the token key stable across deploys. The app requests `ORDERS_READ` and
+`MERCHANT_PROFILE_READ`. Validate a real OAuth round trip and a sample sale
+in Sandbox before enabling production credentials.
 
 Both apps now share a restrained green/neutral visual language with semantic
 error/warning states, keyboard focus styles, 44px action targets, responsive

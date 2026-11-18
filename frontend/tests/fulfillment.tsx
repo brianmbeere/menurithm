@@ -23,6 +23,10 @@ let orders = [{
 }];
 const originalFetch = window.fetch.bind(window);
 const params = new URLSearchParams(location.search);
+let profile = {
+  full_name: 'Fixture Kitchen', restaurant_name: 'Pilot Kitchen',
+  street: '', suite: '', city: '', region: '', postal_code: '', country: '',
+};
 let simulateStockChange = params.has('stock-change');
 let stockReads = 0;
 const stock: InventoryItem[] = [
@@ -43,6 +47,24 @@ let recipes: Dish[] = [
 let nextDishId = 3;
 window.fetch = async (input, init) => {
   const url = String(input);
+  if (url.endsWith('/api/restaurant-profile')) {
+    if (init?.method === 'PUT') profile = JSON.parse(String(init.body));
+    return Response.json(profile);
+  }
+  if (params.has('square')) {
+    if (url.endsWith('/api/square')) return Response.json({ configured: true, connected: true, environment: 'sandbox' });
+    if (url.endsWith('/api/square/locations')) return Response.json([{ id: 'test', name: 'Test location' }]);
+    if (url.endsWith('/api/square/preview')) return Response.json({
+      revision: 'test', already_imported: 0, unsupported: 1,
+      items: [{ id: 'item', name: 'Soup', lines: 1, quantity: 10 }], dishes: [{ id: 1, name: 'Tomato soup' }],
+    });
+    if (url.endsWith('/api/square/import')) {
+      const body = JSON.parse(String(init?.body));
+      if (body.mappings?.item !== 1 || body.revision !== 'test') return new Response(null, { status: 422 });
+      return Response.json({ imported: 1, needs_attention: 0, unmapped: 0, already_imported: 0, unsupported: 1 });
+    }
+    if (url.endsWith('/sales')) return Response.json([]);
+  }
   if (params.has('recipes')) {
     if (url.endsWith('/inventory')) return Response.json(stock);
     if (url.endsWith('/dishes') && (!init?.method || init.method === 'GET')) return Response.json(recipes);
@@ -168,5 +190,8 @@ window.fetch = async (input, init) => {
 };
 const root = document.getElementById('fixture');
 if (!root) throw new Error('Missing fixture root');
-const start = params.has('inventory') ? '/dashboard/inventory' : params.has('recipes') ? '/dashboard/dishes' : '/dashboard/produce-orders';
+const start = params.has('legacy-integration') ? '/dashboard/service-integration'
+  : params.has('square') ? '/dashboard/sales'
+  : params.has('inventory') ? '/dashboard/inventory'
+  : params.has('recipes') ? '/dashboard/dishes' : '/dashboard/produce-orders';
 createRoot(root).render(<ThemeProvider theme={theme}><CssBaseline /><MemoryRouter initialEntries={[start]}><PageFrame /></MemoryRouter></ThemeProvider>);

@@ -5,6 +5,7 @@ import {
   FormControlLabel, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { authFetch } from '../hooks/authFetch';
+import { formatDeliveryAddress, loadRestaurantProfile } from '../api/restaurantProfile';
 import { BASE_URL } from '../utils';
 import { getAuth } from 'firebase/auth';
 import fetchInventory from '../api/fetchInventory';
@@ -95,6 +96,8 @@ export default function ProduceOrders({
   const [receiptQuantities, setReceiptQuantities] = useState<Record<number, string>>({});
   const [receiptUnits, setReceiptUnits] = useState<Record<number, string>>({});
   const signedIn = Boolean(getAuth().currentUser);
+  const [savedAddress, setSavedAddress] = useState('');
+  const [profileError, setProfileError] = useState('');
   const [form, setForm] = useState({
     restaurant_name: '', produce_type: '', quantity_needed: '10', unit: 'kg',
     method: 'customer_pickup', delivery_address: '', delivery_window_start: '',
@@ -144,6 +147,16 @@ export default function ProduceOrders({
     finally { setLoading(false); }
   }, [initialInventoryItemId]);
   useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!signedIn) return;
+    let active = true;
+    loadRestaurantProfile().then(profile => {
+      if (!active) return;
+      setSavedAddress(formatDeliveryAddress(profile));
+      setForm(previous => ({ ...previous, restaurant_name: previous.restaurant_name || profile.restaurant_name }));
+    }).catch(() => { if (active) setProfileError('Saved delivery details could not be loaded. You can still enter an address manually.'); });
+    return () => { active = false; };
+  }, [signedIn]);
 
   const searchListings = async () => {
     setSearchingListings(true);
@@ -348,7 +361,13 @@ export default function ProduceOrders({
             <MenuItem value="customer_pickup">Customer pickup · no delivery fee</MenuItem>
             <MenuItem value="farmer_delivery">Farmer delivery · fee quoted by farmer</MenuItem>
           </TextField>
-          {form.method === 'farmer_delivery' && field('delivery_address', 'Delivery address')}
+          {form.method === 'farmer_delivery' && <Stack spacing={1}>
+            {field('delivery_address', 'Delivery address')}
+            {savedAddress && <Box><Button size="small" onClick={() =>
+              setForm(previous => ({ ...previous, delivery_address: savedAddress }))
+            }>Use saved delivery address</Button></Box>}
+            {profileError && <Typography variant="body2" color="text.secondary">{profileError}</Typography>}
+          </Stack>}
           {field('delivery_window_start', 'Preferred window start', 'datetime-local')}
           {field('delivery_window_end', 'Preferred window end', 'datetime-local')}
           <TextField fullWidth multiline minRows={2} label="Quality, access or handling requirements" value={form.special_requirements}

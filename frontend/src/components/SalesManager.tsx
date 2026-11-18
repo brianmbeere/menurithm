@@ -12,6 +12,7 @@ import { fetchSales, type Sale } from "../api/fetchSales";
 import { updateSale } from "../api/updateSale";
 import { Delete, Edit, UploadFile } from "./SVGIcons";
 import { PageHeading } from "./WorkspaceUI";
+import SquareSalesImport from "./SquareSalesImport";
 import CSVHelpDialog from "./CSVHelpDialog";
 import { formatDate } from "../utils";
 
@@ -174,6 +175,7 @@ const SalesManager = () => {
   return (
     <>
     <PageHeading icon="sales" title="Sales" description="Record or import sales and review the sales you’ve already entered." />
+    <SquareSalesImport onImported={refreshSales} />
     <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography component="h2" variant="h6" gutterBottom>{editSaleId === null ? "Record a sale" : "Edit sale"}</Typography>
 

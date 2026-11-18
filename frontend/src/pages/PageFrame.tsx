@@ -1,7 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { Alert, Box, Button, Container, Divider, Drawer, IconButton, List, ListItemButton,
   ListItemIcon, ListItemText, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getAuth, signOut } from "firebase/auth";
 import { WorkspaceIcon, type IconName } from "../components/WorkspaceUI";
 import NotFound from "./NotFound";
@@ -12,8 +12,8 @@ import SalesManager from "../components/SalesManager";
 import MenuManager from "../components/MenuManager";
 import ProduceMarketplace from "../components/ProduceMarketplace";
 import AIAnalyticsDashboard from "../components/AIAnalyticsDashboard";
-import ServiceIntegrationPanel from "../components/ServiceIntegrationPanel";
 import AccountSettings from "../components/AccountSettings";
+import { marketplacePath, produceOrdersPath } from "./purchasingRoutes";
 
 const groups: { label: string; pages: { path: string; title: string; icon: IconName; Component: ComponentType }[] }[] = [
   { label: "Kitchen", pages: [
@@ -24,11 +24,10 @@ const groups: { label: string; pages: { path: string; title: string; icon: IconN
     { path: "/dashboard/menu", title: "Menu planning", icon: "menu", Component: MenuManager },
   ] },
   { label: "Purchasing", pages: [
-    { path: "/dashboard/produce-orders", title: "Produce marketplace", icon: "shop", Component: ProduceMarketplace },
+    { path: marketplacePath, title: "Produce marketplace", icon: "shop", Component: ProduceMarketplace },
   ] },
   { label: "Manage", pages: [
     { path: "/dashboard/ai-analytics", title: "Analytics", icon: "chart", Component: AIAnalyticsDashboard },
-    { path: "/dashboard/service-integration", title: "Integrations", icon: "link", Component: ServiceIntegrationPanel },
     { path: "/account", title: "Account settings", icon: "account", Component: AccountSettings },
   ] },
 ];
@@ -41,8 +40,9 @@ export default function PageFrame() {
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const path = pathname.replace(/\/+$/, "");
   const ActivePage = groups.flatMap(group => group.pages)
-    .find(page => page.path === pathname.replace(/\/+$/, ""))?.Component;
+    .find(page => page.path === path)?.Component;
   const collapsed = compact && !mobile;
   const width = collapsed ? 68 : 248;
   const logout = async () => {
@@ -104,7 +104,8 @@ export default function PageFrame() {
       </Stack>
       <Container component="main" maxWidth="xl" sx={{ py: { xs: 2.5, md: 4 } }}>
         {logoutError && <Alert severity="error" onClose={() => setLogoutError(false)} sx={{ mb: 2 }}>Could not sign out. Please try again.</Alert>}
-        {ActivePage ? <ActivePage /> : <NotFound workspace />}
+        {path === "/dashboard/service-integration" ? <Navigate to={produceOrdersPath} replace />
+          : ActivePage ? <ActivePage /> : <NotFound workspace />}
       </Container>
     </Box>
   </Box>;

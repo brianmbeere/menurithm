@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardActionArea, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Drawer, MenuItem, Skeleton, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { fetchCroprithmProduce, type CroprithmProduceListing } from '../api/fetchCroprithmProduce';
 import { authFetch } from '../hooks/authFetch';
@@ -21,7 +22,14 @@ const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'U
 const displayDate = (value: string) => new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString();
 
 export default function ProduceMarketplace() {
-  const [tab, setTab] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('view') === 'orders' ? 1 : 0;
+  const setTab = (next: number) => {
+    const updated = new URLSearchParams(params);
+    if (next === 1) updated.set('view', 'orders');
+    else updated.delete('view');
+    setParams(updated);
+  };
   const [listings, setListings] = useState<CroprithmProduceListing[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
