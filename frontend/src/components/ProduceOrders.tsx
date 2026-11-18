@@ -269,7 +269,7 @@ export default function ProduceOrders({
         <Typography color="text.secondary">Choose how fresh produce reaches your kitchen. No courier marketplace, no surprise delivery charges.</Typography>
       </Box>
       <Alert severity="info">Review the produce price and any delivery fee before accepting. Accepting a new quote reserves stock but does not charge you. Pay the farmer directly.</Alert>
-      <Alert severity="info">Requests do not reserve farmer stock. Listings are rechecked when the farmer completes handover.</Alert>
+      <Alert severity="info">Requests do not reserve farmer stock. Accepting a new quote rechecks availability and reserves stock.</Alert>
       {error && <Alert severity="error" role="alert"
         action={!signedIn ? <Button color="inherit" href="/signin?next=/dashboard/produce-orders">Sign in</Button> : undefined}>
         {!signedIn ? 'Sign in to your Menurithm account to request produce and review your farmer quotes.' : error}
@@ -318,7 +318,7 @@ export default function ProduceOrders({
         {listings.length === 0 && !searchingListings &&
           <Typography variant="body2" color="text.secondary">Search to see current farmer listings and prices.</Typography>}
         <Typography variant="caption" color="text.secondary">
-          Displayed prices are current listing prices only; final produce pricing and payment are arranged directly with the farmer.
+          Displayed prices are current listing prices. The farmer confirms the final price in the quote; payment is made directly to the farmer.
         </Typography>
       </CardContent></Card>
       <Card><CardContent>

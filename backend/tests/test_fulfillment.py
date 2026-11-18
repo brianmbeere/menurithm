@@ -67,6 +67,24 @@ def test_proxy_uses_server_identity_and_root_api_path(client, monkeypatch):
     assert result.json() == [{"id": 1, "stage": "quoted", "inventory_received": False}]
 
 
+def test_cart_preview_forwards_exact_quantities_with_authenticated_customer(client, monkeypatch):
+    import json
+
+    def handler(request):
+        assert request.url.path == "/api/fulfillment/marketplace/checkout-preview"
+        assert request.headers["x-customer-id"] == "customer-one"
+        assert json.loads(request.read()) == {"lines": [{"listing_id": 9, "quantity": "0.125"}]}
+        return httpx.Response(200, json={"produce_subtotal": "1.25", "payment_status": "not_configured"})
+
+    mock_upstream(monkeypatch, handler)
+    endpoint = "/api/fulfillment/marketplace/checkout-preview"
+    response = client.post(endpoint, json={"lines": [{"listing_id": 9, "quantity": "0.125"}]},
+                           headers={"X-Customer-Id": "someone-else"})
+    assert response.status_code == 200
+    assert response.json()["payment_status"] == "not_configured"
+    assert client.post(endpoint, json={"lines": [{"listing_id": 9, "quantity": "0.0001"}]}).status_code == 422
+
+
 def test_quote_revision_is_forwarded_and_conflicts_are_not_success(client, monkeypatch):
     def handler(request):
         assert request.url.path == "/api/fulfillment/orders/8/accept"

@@ -18,7 +18,22 @@ let orders = [{
 const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {
   const url = String(input);
+  if (url.endsWith('/inventory')) return Response.json([]);
   if (!url.includes('/api/fulfillment/')) return originalFetch(input, init);
+  if (url.includes('/produce/available')) return Response.json([
+    { id: 501, seller_id: 1, seller_name: 'Fixture Farmer', produce_type: 'Tomatoes', quantity_available: 20,
+      unit: 'kg', price_per_unit: 3, location: 'Fixture Farm', organic: true },
+  ]);
+  if (url.endsWith('/marketplace/checkout-preview')) {
+    const body = JSON.parse(String(init?.body));
+    const line = body.lines[0];
+    if (line.listing_id !== 501 || Number(line.quantity) > 20) {
+      return Response.json({ detail: 'Not enough tomatoes are available.' }, { status: 409 });
+    }
+    const subtotal = (Number(line.quantity) * 3).toFixed(2);
+    return Response.json({ seller_name: 'Fixture Farmer', produce_subtotal: subtotal, payment_status: 'not_configured',
+      lines: [{ listing_id: 501, produce_type: 'Tomatoes', unit: 'kg', quantity: line.quantity, line_total: subtotal }] });
+  }
   if (url.endsWith('/accept')) {
     const body = JSON.parse(String(init?.body));
     if (body.revision !== orders[0].revision) return Response.json({ detail: 'Quote changed. Refresh and review.' }, { status: 409 });

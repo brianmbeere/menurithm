@@ -45,6 +45,20 @@ class Acceptance(BaseModel):
     revision: int = Field(gt=0)
 
 
+class CartLine(BaseModel):
+    listing_id: int = Field(gt=0)
+    quantity: Decimal = Field(gt=0, max_digits=12, decimal_places=3)
+
+
+class CartPreview(BaseModel):
+    lines: list[CartLine] = Field(min_length=1, max_length=50)
+
+
+@router.post("/marketplace/checkout-preview")
+async def preview_checkout(data: CartPreview, user: User = Depends(get_current_user)):
+    return await forward("POST", "marketplace/checkout-preview", user.firebase_uid, data.model_dump(mode="json"))
+
+
 class ReceiptInput(BaseModel):
     quantity_received: Decimal = Field(gt=0, allow_inf_nan=False)
     unit: str = Field(min_length=1, max_length=30)

@@ -11,7 +11,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useNavigate, useLocation } from "react-router-dom";
 import { signOut, getAuth } from "firebase/auth";
-import ProduceOrders from "../components/ProduceOrders";
+import ProduceMarketplace from "../components/ProduceMarketplace";
 
 import InventoryManager from "../components/InventoryManager";
 import MenuManager from "../components/MenuManager";
@@ -35,7 +35,7 @@ const tabRoutes = [
   { title: "Sales", path: "/dashboard/sales" },
   { title: "Menu Generator", path: "/dashboard/menu" },
   { title: "Service Integration", path: "/dashboard/service-integration" },
-  { title: "Produce orders", path: "/dashboard/produce-orders" },
+  { title: "Produce marketplace", path: "/dashboard/produce-orders" },
 ];
 
 const PageFrame = () => {
@@ -168,7 +168,7 @@ const PageFrame = () => {
                   </CardContent>
                 </Card>
               )}
-              {activeTab === 7 && <ProduceOrders />}
+              {activeTab === 7 && <ProduceMarketplace />}
             </Box>
           </Fade>
         </Container>

@@ -38,6 +38,13 @@ The legacy `create-produce-order` endpoint now returns 409 directing clients to
 the agreement workflow; existing historical order records are retained.
 
 See [Croprithm deployment and migration instructions](https://github.com/brianmbeere/croprithm#backend-setup-and-deployment-order).
+
+The **Produce marketplace** workspace includes a checkout preview for live
+Croprithm listings. Add items from one farm, edit quantities, and review the
+produce subtotal after Croprithm checks live price and stock. This does not
+place an order, reserve inventory, or contact Stripe. Delivery windows, taxes,
+and service fees are not calculated in the preview. Use **Orders & quotes**
+for the existing pilot flow.
 Tests: from `backend`, run
 `python -m pytest tests/test_fulfillment.py tests/test_croprithm_config.py tests/test_database_config.py -q`.
 For a credential-free UI check, run Vite and open `/tests/fulfillment.html`.
