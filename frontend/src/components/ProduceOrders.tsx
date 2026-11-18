@@ -61,7 +61,7 @@ interface Receipt {
 
 const methodName = (method: string) => method === 'customer_pickup' ? 'Customer pickup' : 'Farmer delivery';
 const stageName = (stage: string) => ({
-  requested: 'Awaiting farmer quote', quoted: 'Your approval needed', accepted: 'Confirmed',
+  requested: 'Awaiting farmer quote', quoted: 'Review quote', accepted: 'Confirmed',
   ready: 'Ready for handover', collected: 'Collected', delivered: 'Delivered',
 }[stage] || stage);
 
@@ -83,6 +83,7 @@ export default function ProduceOrders({
   initialInventoryItemId?: number;
 }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [activity, setActivity] = useState<'all' | 'orders' | 'quotes'>('all');
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -281,14 +282,13 @@ export default function ProduceOrders({
       }} />
   );
 
+  const isQuote = (order: Order) => !order.pickup_checkout_id && ['requested', 'quoted'].includes(order.stage);
+  const isOrder = (order: Order) => Boolean(order.pickup_checkout_id) || ['accepted', 'ready', 'collected', 'delivered'].includes(order.stage);
+  const visibleOrders = orders.filter(order => activity === 'all' || (activity === 'quotes' ? isQuote(order) : isOrder(order)));
+
   return (
     <Stack spacing={3}>
-      <Box>
-        <Typography variant="overline" color="primary">Farm-to-kitchen sourcing</Typography>
-        <Typography component="h2" variant="h5">Orders & quotes</Typography>
-        <Typography color="text.secondary">Review pickup orders and manage custom requests with farms.</Typography>
-      </Box>
-      <Alert severity="info">A custom request does not reserve stock. Review the price and any delivery fee before accepting a quote. Acceptance reserves available stock; you pay the farmer directly.</Alert>
+      <Alert severity="info">A custom quote request is not an order. Stock is reserved only after you accept the farmer's quote. Pay the farmer directly.</Alert>
       {error && <Alert severity="error" role="alert"
         action={!signedIn ? <Button color="inherit" href="/signin?next=/dashboard/produce-orders">Sign in</Button> : undefined}>
         {!signedIn ? 'Sign in to your Menurithm account to request produce and review your farmer quotes.' : error}
@@ -376,19 +376,26 @@ export default function ProduceOrders({
         </Box>
       </CardContent></Card>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">Your requests & agreements</Typography>
+        <Typography component="h2" variant="h6">Order activity</Typography>
         <Button onClick={refresh} disabled={loading || busy}>Refresh orders</Button>
       </Stack>
-      {loading ? <CircularProgress aria-label="Loading orders" /> : orders.length === 0 && !error ?
-        <Alert severity="info">No requests yet. Send your first request above; farmer quotes will appear here.</Alert> : null}
-      {orders.map(order => (
+      <Stack direction="row" gap={1} flexWrap="wrap" aria-label="Filter order activity" role="group">
+        {([['all', 'All activity'], ['orders', 'Orders'], ['quotes', 'Quote requests']] as const).map(([id, label]) =>
+          <Button key={id} variant={activity === id ? 'contained' : 'outlined'} aria-pressed={activity === id}
+            sx={{ minHeight: 44 }} onClick={() => setActivity(id)}>{label}</Button>)}
+      </Stack>
+      {loading ? <CircularProgress aria-label="Loading orders" /> : visibleOrders.length === 0 && !error ?
+        <Alert severity="info">{activity === 'quotes' ? 'No open quote requests. Send a custom request above to ask a farmer for terms.'
+          : activity === 'orders' ? 'No orders to show. Place a pickup order or accept a custom quote.'
+          : 'No activity yet. Place a pickup order or send a custom quote request to get started.'}</Alert> : null}
+      {!loading && visibleOrders.map(order => (
         <Card key={order.id}><CardContent>
           <Stack spacing={2}>
             <Stack direction="row" gap={1} flexWrap="wrap" justifyContent="space-between">
               <Typography variant="h6">{order.quantity_needed} {order.unit} {order.produce_type}</Typography>
               <Chip label={stageName(order.stage)} color={order.stage === 'quoted' ? 'warning' : 'default'} />
             </Stack>
-            <Typography variant="body2" color="text.secondary">Request #{order.request_id} · {new Date(order.window_start).toLocaleString()} – {new Date(order.window_end).toLocaleString()}</Typography>
+            <Typography variant="body2" color="text.secondary">{order.pickup_checkout_id ? `Pickup order #${order.pickup_checkout_id}` : `Custom request #${order.request_id}`} · {new Date(order.window_start).toLocaleString()} – {new Date(order.window_end).toLocaleString()}</Typography>
             {order.menurithm_inventory_item_id && (
               <Typography variant="body2" color="text.secondary">
                 Receiving into {inventoryItems.find(item => item.id === order.menurithm_inventory_item_id)?.ingredient_name || 'linked kitchen inventory'}

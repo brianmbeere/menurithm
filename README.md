@@ -30,6 +30,12 @@ The former Integrations page redirects to **Orders & quotes**. Account settings
 also links there. Service-to-service dish creation remains available through
 the API, not as a restaurant workspace page.
 
+Use **Inventory → Low stock** to see ingredients at or below their reorder
+point, and **Find produce** on a stock row to source that ingredient.
+In **Dishes & recipes**, open a dish marked **Needs recipe review** to see
+which batch or ingredient details to fix. Filter **Order activity** to see
+orders separately from open quote requests.
+
 A farmer quotes the fulfillment method they can offer, pickup address where
 needed, handover instructions, a USD produce subtotal and delivery fee. Review the exact quote,
 explicitly check the agreement box and accept it. Stale quote revisions are
