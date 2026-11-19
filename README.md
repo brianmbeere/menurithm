@@ -5,6 +5,10 @@ Menurithm is a data-driven decision-support application designed to assist food 
 ![Menurithm Dashboard](docs/images/dashboard-screenshot.png)
 
 ## Overview
+
+The public landing page includes a silent, 28-second product walkthrough
+recorded with sample data. The MP4 and poster live in `frontend/public/demo/`;
+update the on-page transcript when replacing the walkthrough.
 Menurithm processes operational data such as inventory levels and historical usage to generate recommendations that support planning decisions in restaurant and food service environments.
 
 ## Key Capabilities

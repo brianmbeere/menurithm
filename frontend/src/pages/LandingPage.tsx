@@ -98,9 +98,32 @@ const LandingPage: React.FC = () => {
               >
                 Book a Demo
               </Button>
+              <Button href="#product-demo" size="large">Watch the 28-second demo</Button>
             </Box>
           </motion.div>
         </Box>
+
+        <Paper id="product-demo" component="section" aria-labelledby="product-demo-title" variant="outlined"
+          sx={{ maxWidth: 920, mx: 'auto', mb: 6, p: { xs: 2, sm: 3 }, borderRadius: 3, scrollMarginTop: 16 }}>
+          <Typography id="product-demo-title" component="h2" variant="h5" gutterBottom>See Menurithm in action</Typography>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            From spotting low stock to ordering farm produce for pickup. A 28-second walkthrough with sample data and no audio.
+          </Typography>
+          <Box component="video" controls controlsList="nodownload" playsInline preload="none" width={1280} height={720}
+            poster="/demo/menurithm-walkthrough.jpg" aria-label="Menurithm product walkthrough"
+            sx={{ display: 'block', width: '100%', height: 'auto', aspectRatio: '16 / 9', borderRadius: 2, bgcolor: 'primary.dark' }}>
+            <source src="/demo/menurithm-walkthrough.mp4" type="video/mp4" />
+          </Box>
+          <Box component="details" sx={{ mt: 2 }}>
+            <Typography component="summary" sx={{ cursor: 'pointer', fontWeight: 600 }}>Read the walkthrough</Typography>
+            <ol>
+              <li>Check ingredient counts and see what has reached its reorder point.</li>
+              <li>Link dishes to inventory ingredients and set batch quantities and yields.</li>
+              <li>Compare Croprithm listings by price, unit, and available quantity.</li>
+              <li>Review your cart, choose a pickup window, and pay the farmer when you collect.</li>
+            </ol>
+          </Box>
+        </Paper>
 
         <Box textAlign="center" mb={2}>
           <motion.img
